@@ -20,11 +20,10 @@ class GlassFloatingActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return RepaintBoundary(
-      child: ClipOval(
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-          child: DecoratedBox(
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
+        child: DecoratedBox(
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: DeskflowColors.shellGlassSurfaceFocused,
@@ -61,7 +60,6 @@ class GlassFloatingActionButton extends StatelessWidget {
             onPressed: onPressed,
             shape: const CircleBorder(),
             child: Icon(icon),
-          ),
           ),
         ),
       ),

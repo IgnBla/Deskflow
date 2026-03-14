@@ -4,22 +4,18 @@ import 'package:deskflow/core/utils/app_logger.dart';
 import 'package:deskflow/features/auth/domain/auth_providers.dart';
 import 'package:deskflow/features/org/domain/org_providers.dart';
 import 'package:deskflow/features/org/domain/organization.dart';
+import 'package:deskflow/features/org/domain/pending_org_invite_intent.dart';
 
 part 'org_notifier.g.dart';
 
 final _log = AppLogger.getLogger('OrgNotifier');
 
-/// Manages organization create / join actions.
-@riverpod
+@Riverpod(keepAlive: true)
 class OrgNotifier extends _$OrgNotifier {
   @override
   FutureOr<void> build() {
-    // No initial async work.
   }
 
-  /// Create a new organization and select it.
-  ///
-  /// Returns the created [Organization] or `null` on error.
   Future<Organization?> createOrganization(String name) async {
     final user = ref.read(currentUserProvider);
     if (user == null) return null;
@@ -33,14 +29,12 @@ class OrgNotifier extends _$OrgNotifier {
           );
       createdOrg = org;
       ref.read(currentOrgIdProvider.notifier).select(org.id);
-      // Invalidate org list so it re-fetches
       ref.invalidate(userOrganizationsProvider);
       _log.i('Organization created: ${org.name}');
     });
     return state.hasError ? null : createdOrg;
   }
 
-  /// Join an organization by invite code and select it.
   Future<bool> joinByInviteCode(String code) async {
     final user = ref.read(currentUserProvider);
     if (user == null) return false;
@@ -58,9 +52,65 @@ class OrgNotifier extends _$OrgNotifier {
     return !state.hasError;
   }
 
-  /// Select an existing organization from the list.
+  Future<Organization?> acceptInviteByToken(String inviteToken) async {
+    Organization? acceptedOrg;
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final org = await ref.read(orgRepositoryProvider).acceptInviteByToken(
+            inviteToken: inviteToken,
+          );
+      acceptedOrg = org;
+      _completeInviteAcceptance(org);
+      _log.i('Accepted organization invite by token: ${org.name}');
+    });
+
+    return state.hasError ? null : acceptedOrg;
+  }
+
+  Future<Organization?> acceptInviteByCode(String inviteCode) async {
+    Organization? acceptedOrg;
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final org = await ref.read(orgRepositoryProvider).acceptInviteByCode(
+            inviteCode: inviteCode,
+          );
+      acceptedOrg = org;
+      _completeInviteAcceptance(org);
+      _log.i('Accepted organization invite by code: ${org.name}');
+    });
+
+    return state.hasError ? null : acceptedOrg;
+  }
+
+  Future<List<Organization>> claimPendingInvites() async {
+    List<Organization> acceptedOrganizations = const [];
+
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() async {
+      final result = await ref.read(orgRepositoryProvider).claimPendingInvites();
+      acceptedOrganizations = result.organizations;
+
+      if (acceptedOrganizations.isNotEmpty) {
+        _completeInviteAcceptance(acceptedOrganizations.first);
+        _log.i(
+          'Claimed ${acceptedOrganizations.length} pending organization invite(s)',
+        );
+      }
+    });
+
+    return state.hasError ? const [] : acceptedOrganizations;
+  }
+
   void selectOrganization(Organization org) {
     ref.read(currentOrgIdProvider.notifier).select(org.id);
     _log.i('Selected organization: ${org.name}');
+  }
+
+  void _completeInviteAcceptance(Organization org) {
+    ref.read(currentOrgIdProvider.notifier).select(org.id);
+    ref.invalidate(userOrganizationsProvider);
+    ref.read(pendingOrgInviteIntentProvider.notifier).clear();
   }
 }
