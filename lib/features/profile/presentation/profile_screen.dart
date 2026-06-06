@@ -6,8 +6,9 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:deskflow/core/theme/deskflow_theme.dart';
 import 'package:deskflow/core/utils/app_logger.dart';
-import 'package:deskflow/core/widgets/glass_card.dart';
 import 'package:deskflow/core/widgets/status_pill_badge.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
+import 'package:deskflow/core/widgets/work_settings_group.dart';
 import 'package:deskflow/features/auth/domain/auth_providers.dart';
 import 'package:deskflow/features/org/domain/org_providers.dart';
 import 'package:deskflow/features/profile/domain/account_history_providers.dart';
@@ -517,16 +518,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         .firstOrNull;
     final orgName = currentOrg?.name ?? 'Организация';
 
-      return Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
+    return WorkScreenScaffold(
+      body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(
           padding: EdgeInsets.fromLTRB(
             DeskflowSpacing.lg,
             DeskflowSpacing.xl,
             DeskflowSpacing.lg,
-            104 + MediaQuery.of(context).padding.bottom, // nav bar + system insets
+            104 + MediaQuery.paddingOf(context).bottom,
           ),
           child: Column(
             children: [
@@ -650,133 +650,106 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
               const SizedBox(height: DeskflowSpacing.xxl),
 
-              GlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Организация',
-                      style: DeskflowTypography.caption,
-                    ),
-                    const SizedBox(height: DeskflowSpacing.sm),
-                    Text(
-                      orgName,
-                      style: DeskflowTypography.h3,
-                    ),
-                    const SizedBox(height: DeskflowSpacing.lg),
-                    _SettingsItem(
-                      icon: Icons.swap_horiz_rounded,
-                      label: 'Сменить организацию',
-                      onTap: () => context.push('/org/select'),
-                    ),
-                    if (isOwnerOrAdmin)
-                      _SettingsItem(
-                        icon: Icons.settings_rounded,
-                        label: 'Настройки организации',
-                        onTap: () => context.push('/profile/org-settings'),
-                      ),
-                  ],
+              WorkSettingsGroup(
+                title: 'Организация',
+                action: Text(
+                  orgName,
+                  style: DeskflowTypography.bodySmall.copyWith(
+                    color: DeskflowColors.workMutedText,
+                  ),
                 ),
+                children: [
+                  _SettingsItem(
+                    icon: Icons.swap_horiz_rounded,
+                    label: 'Сменить организацию',
+                    onTap: () => context.push('/org/select'),
+                  ),
+                  if (isOwnerOrAdmin)
+                    _SettingsItem(
+                      icon: Icons.settings_rounded,
+                      label: 'Настройки организации',
+                      onTap: () => context.push('/profile/org-settings'),
+                    ),
+                ],
               ),
 
               const SizedBox(height: DeskflowSpacing.lg),
 
               if (isOwnerOrAdmin) ...[
-                GlassCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Админ-панель',
-                        style: DeskflowTypography.caption,
-                      ),
-                      const SizedBox(height: DeskflowSpacing.sm),
-                      _SettingsItem(
-                        icon: Icons.people_rounded,
-                        label: 'Управление пользователями',
-                        onTap: () => context.push('/admin/users'),
-                      ),
-                      _SettingsItem(
-                        icon: Icons.linear_scale_rounded,
-                        label: 'Настройка статусов',
-                        onTap: () => context.push('/admin/pipeline'),
-                      ),
-                      _SettingsItem(
-                        icon: Icons.inventory_2_rounded,
-                        label: 'Управление каталогом',
-                        onTap: () => context.push('/admin/catalog'),
-                      ),
-                    ],
-                  ),
+                WorkSettingsGroup(
+                  title: 'Админ-панель',
+                  children: [
+                    _SettingsItem(
+                      icon: Icons.people_rounded,
+                      label: 'Управление пользователями',
+                      onTap: () => context.push('/admin/users'),
+                    ),
+                    _SettingsItem(
+                      icon: Icons.linear_scale_rounded,
+                      label: 'Настройка статусов',
+                      onTap: () => context.push('/admin/pipeline'),
+                    ),
+                    _SettingsItem(
+                      icon: Icons.inventory_2_rounded,
+                      label: 'Управление каталогом',
+                      onTap: () => context.push('/admin/catalog'),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: DeskflowSpacing.lg),
               ],
 
-              GlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Настройки',
-                      style: DeskflowTypography.caption,
-                    ),
-                    const SizedBox(height: DeskflowSpacing.sm),
-                    _SettingsItem(
-                      icon: Icons.notifications_rounded,
-                      label: 'Уведомления',
-                      onTap: () => context.push('/profile/notifications'),
-                    ),
-                    _SettingsItem(
-                      icon: Icons.info_outline_rounded,
-                      label: 'О приложении',
-                      onTap: () => _showAboutDialog(context),
-                    ),
-                  ],
-                ),
+              WorkSettingsGroup(
+                title: 'Настройки',
+                children: [
+                  _SettingsItem(
+                    icon: Icons.notifications_rounded,
+                    label: 'Уведомления',
+                    onTap: () => context.push('/profile/notifications'),
+                  ),
+                  _SettingsItem(
+                    icon: Icons.info_outline_rounded,
+                    label: 'О приложении',
+                    onTap: () => _showAboutDialog(context),
+                  ),
+                ],
               ),
 
               const SizedBox(height: DeskflowSpacing.lg),
 
-              GlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Аккаунт',
-                      style: DeskflowTypography.caption,
-                    ),
-                    const SizedBox(height: DeskflowSpacing.sm),
-                    _SettingsItem(
-                      icon: Icons.person_add_rounded,
-                      label: 'Добавить аккаунт',
-                      onTap: () {
-                        _log.i('[FIX] Add account pressed — sign out and navigate to login');
-                        _signOutAndNavigate('/auth/login');
+              WorkSettingsGroup(
+                title: 'Аккаунт',
+                children: [
+                  _SettingsItem(
+                    icon: Icons.person_add_rounded,
+                    label: 'Добавить аккаунт',
+                    onTap: () {
+                      _log.i('[FIX] Add account pressed — sign out and navigate to login');
+                      _signOutAndNavigate('/auth/login');
+                    },
+                  ),
+                  _SettingsItem(
+                    icon: Icons.swap_horiz_rounded,
+                    label: 'Сменить аккаунт',
+                    onTap: () {
+                      _log.i('Switch account pressed — showing account picker');
+                      _showAccountSwitcher();
+                    },
+                  ),
+                  _SettingsItem(
+                    icon: Icons.logout_rounded,
+                    label: 'Выйти',
+                    onTap: () => _confirmSignOut(
+                      title: 'Выйти из аккаунта',
+                      message: 'Вы уверены, что хотите выйти?',
+                      onConfirm: () {
+                        _log.i('Logout confirmed — signing out');
+                        _realSignOut();
                       },
                     ),
-                    _SettingsItem(
-                      icon: Icons.swap_horiz_rounded,
-                      label: 'Сменить аккаунт',
-                      onTap: () {
-                        _log.i('Switch account pressed — showing account picker');
-                        _showAccountSwitcher();
-                      },
-                    ),
-                    _SettingsItem(
-                      icon: Icons.logout_rounded,
-                      label: 'Выйти',
-                      onTap: () => _confirmSignOut(
-                        title: 'Выйти из аккаунта',
-                        message: 'Вы уверены, что хотите выйти?',
-                        onConfirm: () {
-                          _log.i('Logout confirmed — signing out');
-                          _realSignOut();
-                        },
-                      ),
-                      isDestructive: true,
-                    ),
-                  ],
-                ),
+                    isDestructive: true,
+                  ),
+                ],
               ),
             ],
           ),

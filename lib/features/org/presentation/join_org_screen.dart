@@ -104,6 +104,7 @@ class _JoinOrgScreenState extends ConsumerState<JoinOrgScreen> {
                         hint: 'Введите код',
                         controller: _codeController,
                         textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _handleJoin(),
                         validator: (value) {
                           if (value == null || value.trim().isEmpty) {
                             return 'Введите код приглашения';

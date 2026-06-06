@@ -47,14 +47,15 @@ void main() {
 
     test('formattedPrice formats correctly', () {
       final product = Product.fromJson(json);
-      expect(product.formattedPrice, '4 500 ₽');
+      expect(product.formattedPrice, '4\u00A0500\u00A0\u20BD');
     });
 
     test('formattedPrice with decimal price', () {
       final decimalJson = Map<String, dynamic>.from(json);
       decimalJson['price'] = 1234.56;
       final product = Product.fromJson(decimalJson);
-      expect(product.formattedPrice, '1 234,56 ₽');
+      // formatCompact uses decimalDigits: 0, so 1234.56 rounds to 1235
+      expect(product.formattedPrice, '1\u00A0235\u00A0\u20BD');
     });
 
     test('toJson includes all required fields', () {

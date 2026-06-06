@@ -78,7 +78,8 @@ class StatusChangeSheet extends ConsumerWidget {
                   style: DeskflowTypography.h2),
               const SizedBox(height: DeskflowSpacing.lg),
 
-              pipelineAsync.when(
+              pipelineAsync.when(                skipLoadingOnRefresh: true,
+                skipLoadingOnReload: true,
                 loading: () => const Center(
                   child: CircularProgressIndicator(
                     color: DeskflowColors.primarySolid,

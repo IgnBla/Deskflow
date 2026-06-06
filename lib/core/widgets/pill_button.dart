@@ -81,14 +81,17 @@ class PillButton extends StatelessWidget {
   final bool expanded;
   final double height;
 
-  bool get _isDisabled => onPressed == null && !isLoading;
+  bool get _isDisabled => (onPressed == null && !isLoading) || isLoading;
 
   @override
   Widget build(BuildContext context) {
     final bgColor = color ?? DeskflowColors.primary;
-    final effectiveBg =
-        _isDisabled ? bgColor.withValues(alpha: 0.3) : bgColor;
-    final effectiveTextColor = _isDisabled
+    final effectiveBg = _isDisabled && !isLoading
+        ? bgColor.withValues(alpha: 0.3)
+        : isLoading
+            ? bgColor.withValues(alpha: 0.6)
+            : bgColor;
+    final effectiveTextColor = _isDisabled && !isLoading
         ? DeskflowColors.textDisabled
         : (textColor ?? DeskflowColors.textPrimary);
 
@@ -98,8 +101,8 @@ class PillButton extends StatelessWidget {
       children: [
         if (isLoading) ...[
           SizedBox(
-            width: 18,
-            height: 18,
+            width: 16,
+            height: 16,
             child: CircularProgressIndicator(
               strokeWidth: 2,
               color: effectiveTextColor,
@@ -110,9 +113,16 @@ class PillButton extends StatelessWidget {
           Icon(icon, size: 18, color: effectiveTextColor),
           const SizedBox(width: DeskflowSpacing.sm),
         ],
-        Text(
-          label,
-          style: DeskflowTypography.button.copyWith(color: effectiveTextColor),
+        Flexible(
+          child: Text(
+            label,
+            style: DeskflowTypography.button.copyWith(
+              color: effectiveTextColor,
+              fontSize: 14,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
         ),
       ],
     );
@@ -126,15 +136,17 @@ class PillButton extends StatelessWidget {
         disabledColor: effectiveBg,
         elevation: 0,
         highlightElevation: 0,
-        shape: const StadiumBorder(
+        shape: StadiumBorder(
           side: BorderSide(
-            color: DeskflowColors.glassBorder,
+            color: isLoading
+                ? DeskflowColors.primarySolid.withValues(alpha: 0.3)
+                : DeskflowColors.glassBorder,
             width: 0.5,
           ),
         ),
         padding: const EdgeInsets.symmetric(
-          horizontal: DeskflowSpacing.xl,
-          vertical: DeskflowSpacing.md,
+          horizontal: DeskflowSpacing.lg,
+          vertical: DeskflowSpacing.sm,
         ),
         child: buttonChild,
       ),

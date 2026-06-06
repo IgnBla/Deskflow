@@ -17,7 +17,7 @@ AdminRepository adminRepository(Ref ref) {
 Future<List<MemberWithProfile>> orgMembers(Ref ref) async {
   final orgId = ref.watch(currentOrgIdProvider);
   if (orgId == null) return [];
-  return ref.watch(adminRepositoryProvider).getMembers(orgId);
+  return ref.read(adminRepositoryProvider).getMembers(orgId);
 }
 
 @riverpod
@@ -26,7 +26,7 @@ Future<List<OrderStatus>> adminPipeline(Ref ref) async {
   if (orgId == null) return [];
 
   final data = await ref
-      .watch(supabaseClientProvider)
+      .read(supabaseClientProvider)
       .from('order_statuses')
       .select()
       .eq('organization_id', orgId)

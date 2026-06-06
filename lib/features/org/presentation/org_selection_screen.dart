@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:deskflow/core/theme/deskflow_theme.dart';
+import 'package:deskflow/core/widgets/auth_onboarding_shell.dart';
 import 'package:deskflow/core/widgets/glass_card.dart';
 import 'package:deskflow/core/widgets/pill_button.dart';
 import 'package:deskflow/core/widgets/skeleton_loader.dart';
@@ -21,12 +22,8 @@ class OrgSelectionScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final orgsAsync = ref.watch(userOrganizationsProvider);
 
-    return Scaffold(
-      backgroundColor: DeskflowColors.background,
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(DeskflowSpacing.xl),
-          child: Column(
+    return AuthOnboardingShell(
+      child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: DeskflowSpacing.xxl),
@@ -37,7 +34,8 @@ class OrgSelectionScreen extends ConsumerWidget {
               const SizedBox(height: DeskflowSpacing.xl),
 
               Expanded(
-                child: orgsAsync.when(
+                child: orgsAsync.when(                  skipLoadingOnRefresh: true,
+                  skipLoadingOnReload: true,
                   data: (orgs) {
                     if (orgs.isEmpty) {
                       return const EmptyStateWidget(
@@ -99,8 +97,6 @@ class OrgSelectionScreen extends ConsumerWidget {
               ),
             ],
           ),
-        ),
-      ),
     );
   }
 }
@@ -123,6 +119,7 @@ class _OrgCard extends StatelessWidget {
     };
 
     return GlassCard(
+      enableBlur: false,
       onTap: onTap,
       child: Row(
         children: [

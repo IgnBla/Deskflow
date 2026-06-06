@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -8,15 +9,18 @@ import 'package:deskflow/core/models/paginated_list.dart';
 import 'package:deskflow/core/theme/deskflow_theme.dart';
 import 'package:deskflow/core/utils/app_logger.dart';
 import 'package:deskflow/core/utils/currency_formatter.dart';
+import 'package:deskflow/core/utils/text_input_formatters.dart';
 import 'package:deskflow/core/widgets/empty_state_widget.dart';
 import 'package:deskflow/core/widgets/error_state_widget.dart';
 import 'package:deskflow/core/widgets/floating_island_nav.dart';
-import 'package:deskflow/core/widgets/glass_card.dart';
+import 'package:deskflow/core/widgets/deskflow_bottom_sheet.dart';
 import 'package:deskflow/core/widgets/glass_chip.dart';
-import 'package:deskflow/core/widgets/glass_floating_action_button.dart';
 import 'package:deskflow/core/widgets/pill_search_bar.dart';
 import 'package:deskflow/core/widgets/skeleton_loader.dart';
+import 'package:deskflow/core/widgets/solid_action_button.dart';
 import 'package:deskflow/core/widgets/status_pill_badge.dart';
+import 'package:deskflow/core/widgets/work_list_tile.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
 import 'package:deskflow/features/orders/domain/order.dart';
 import 'package:deskflow/features/orders/domain/order_providers.dart';
 import 'package:deskflow/features/orders/domain/orders_list_controls.dart';
@@ -555,14 +559,15 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
     final result = await showDialog<int>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        backgroundColor: DeskflowColors.modalSurface,
+        backgroundColor: DeskflowColors.workSurfaceElevated,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(DeskflowRadius.overlay),
+          borderRadius: BorderRadius.circular(DeskflowRadius.workSheet),
         ),
         title: const Text('Выбрать год'),
         content: TextField(
           controller: controller,
           keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           decoration: const InputDecoration(
             labelText: 'Год',
             hintText: 'Например, 2026',
@@ -623,75 +628,70 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   }
 
   Future<void> _showOrderActions(Order order) async {
-    await showModalBottomSheet<void>(
+    await DeskflowBottomSheet.show<void>(
       context: context,
-      backgroundColor: Colors.transparent,
-      builder: (sheetContext) => SafeArea(
-        top: false,
-        child: GlassCard(
-          elevated: true,
-          margin: const EdgeInsets.all(DeskflowSpacing.lg),
-          borderRadius: DeskflowRadius.overlay,
+      builder: (sheetContext) => DeskflowBottomSheet(
+        title: order.formattedNumber,
+        maxHeightFraction: 0.5,
+        child: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(order.formattedNumber, style: DeskflowTypography.h3),
-              const SizedBox(height: DeskflowSpacing.md),
-              _SheetAction(
-                icon: Icons.open_in_new_rounded,
-                label: 'Открыть заказ',
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  context.push('/orders/${order.id}');
-                },
-              ),
-              _SheetAction(
-                icon: Icons.edit_rounded,
-                label: 'Редактировать',
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  context.push('/orders/${order.id}/edit');
-                },
-              ),
-              _SheetAction(
-                icon: Icons.swap_horiz_rounded,
-                label: 'Сменить статус',
-                onTap: () {
-                  Navigator.of(sheetContext).pop();
-                  showModalBottomSheet<void>(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => StatusChangeSheet(
-                      orderId: order.id,
-                      currentStatusId: order.statusId,
+            _SheetAction(
+              icon: Icons.open_in_new_rounded,
+              label: 'Открыть заказ',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.push('/orders/${order.id}');
+              },
+            ),
+            _SheetAction(
+              icon: Icons.edit_rounded,
+              label: 'Редактировать',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.push('/orders/${order.id}/edit');
+              },
+            ),
+            _SheetAction(
+              icon: Icons.swap_horiz_rounded,
+              label: 'Сменить статус',
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                showModalBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => StatusChangeSheet(
+                    orderId: order.id,
+                    currentStatusId: order.statusId,
+                  ),
+                );
+              },
+            ),
+            _SheetAction(
+              icon: Icons.copy_all_rounded,
+              label: 'Дублировать',
+              onTap: () async {
+                Navigator.of(sheetContext).pop();
+                try {
+                  final composition = await ref.read(
+                    duplicateOrderCompositionProvider(order.id).future,
+                  );
+                  if (!mounted) return;
+                  context.push('/orders/create', extra: composition);
+                } catch (_) {
+                  if (!mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Не удалось подготовить дубликат заказа'),
                     ),
                   );
-                },
-              ),
-              _SheetAction(
-                icon: Icons.copy_all_rounded,
-                label: 'Дублировать',
-                onTap: () async {
-                  Navigator.of(sheetContext).pop();
-                  try {
-                    final composition = await ref.read(
-                      duplicateOrderCompositionProvider(order.id).future,
-                    );
-                    if (!mounted) return;
-                    context.push('/orders/create', extra: composition);
-                  } catch (_) {
-                    if (!mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Не удалось подготовить дубликат заказа'),
-                      ),
-                    );
-                  }
-                },
-              ),
-            ],
+                }
+              },
+            ),
+          ],
           ),
         ),
       ),
@@ -707,20 +707,25 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bp = DeskflowBreakpoints.of(context);
     final controls = ref.watch(ordersListControlsProvider);
     final pipelineAsync = ref.watch(pipelineProvider);
     final ordersAsync = ref.watch(
       ordersListProvider(statusId: _selectedStatusId),
     );
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return WorkScreenScaffold(
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          onRefresh: _refresh,
-          color: DeskflowColors.primarySolid,
-          child: ListView(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: bp.isExpanded ? 980 : double.infinity,
+            ),
+            child: RefreshIndicator(
+              onRefresh: _refresh,
+              color: DeskflowColors.primarySolid,
+              child: ListView(
             controller: _scrollController,
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.only(bottom: 100),
@@ -742,7 +747,8 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
               ),
               SizedBox(
                 height: 40,
-                child: pipelineAsync.when(
+                child: pipelineAsync.when(                  skipLoadingOnRefresh: true,
+                  skipLoadingOnReload: true,
                   data: (pipeline) => ListView(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(
@@ -785,6 +791,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                   children: [
                     Expanded(
                       child: _CompactFilterTrigger(
+                        key: const Key('orders-sort-trigger'),
                         title: 'Сортировка',
                         value: _sortSummary(controls),
                         active: _activePanel == _OrdersTopPanel.sort,
@@ -794,6 +801,7 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
                     const SizedBox(width: DeskflowSpacing.md),
                     Expanded(
                       child: _CompactFilterTrigger(
+                        key: const Key('orders-period-trigger'),
                         title: 'Период',
                         value: controls.periodPreset.label,
                         active: _activePanel == _OrdersTopPanel.period,
@@ -813,12 +821,17 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
             ],
           ),
         ),
+          ),
+        ),
       ),
       floatingActionButton: Padding(
-        padding: EdgeInsets.only(
-          bottom: FloatingIslandNav.totalHeight(context) + 16,
+        padding: EdgeInsets.fromLTRB(
+          0,
+          0,
+          0,
+          FloatingIslandNav.totalHeight(context) + DeskflowSpacing.lg,
         ),
-        child: GlassFloatingActionButton(
+        child: SolidActionButton.fab(
           icon: Icons.add_rounded,
           onPressed: () => context.push('/orders/create'),
         ),
@@ -831,7 +844,8 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
       ordersSearchProvider(_debouncedQuery, _selectedStatusId),
     );
 
-    return searchAsync.when(
+    return searchAsync.when(      skipLoadingOnRefresh: true,
+      skipLoadingOnReload: true,
       data: (orders) {
         _log.d(
           'searchOrders results: ${orders.length} orders for query="$_debouncedQuery"',
@@ -851,18 +865,21 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
           itemCount: orders.length,
           separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
           itemBuilder: (_, index) => _OrderCard(
+            key: Key('order-card-${orders[index].orderNumber}'),
             order: orders[index],
             onMoreTap: () => _showOrderActions(orders[index]),
           ),
         );
       },
-      loading: () => ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: 3,
-        itemBuilder: (_, _) => Padding(
-          padding: const EdgeInsets.only(bottom: DeskflowSpacing.sm),
-          child: SkeletonLoader(child: SkeletonLoader.box(height: 72)),
+      loading: () => SkeletonGroup(
+        child: ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 3,
+          itemBuilder: (_, _) => Padding(
+            padding: const EdgeInsets.only(bottom: DeskflowSpacing.sm),
+            child: SkeletonLoader(child: SkeletonLoader.box(height: 72)),
+          ),
         ),
       ),
       error: (error, _) => ErrorStateWidget(
@@ -875,7 +892,8 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
   }
 
   Widget _buildPaginatedList(AsyncValue<PaginatedList<Order>> ordersAsync) {
-    return ordersAsync.when(
+    return ordersAsync.when(      skipLoadingOnRefresh: true,
+      skipLoadingOnReload: true,
       data: (paginated) {
         final orders = paginated.items;
 
@@ -913,19 +931,22 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
               );
             }
             return _OrderCard(
+              key: Key('order-card-${orders[index].orderNumber}'),
               order: orders[index],
               onMoreTap: () => _showOrderActions(orders[index]),
             );
           },
         );
       },
-      loading: () => ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: 5,
-        itemBuilder: (_, _) => Padding(
-          padding: const EdgeInsets.only(bottom: DeskflowSpacing.sm),
-          child: SkeletonLoader(child: SkeletonLoader.box(height: 72)),
+      loading: () => SkeletonGroup(
+        child: ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: 5,
+          itemBuilder: (_, _) => Padding(
+            padding: const EdgeInsets.only(bottom: DeskflowSpacing.sm),
+            child: SkeletonLoader(child: SkeletonLoader.box(height: 72)),
+          ),
         ),
       ),
       error: (error, _) => ErrorStateWidget(
@@ -937,58 +958,60 @@ class _OrdersListScreenState extends ConsumerState<OrdersListScreen> {
 }
 
 class _OrderCard extends StatelessWidget {
-  const _OrderCard({required this.order, this.onMoreTap});
+  const _OrderCard({super.key, required this.order, this.onMoreTap});
 
   final Order order;
   final VoidCallback? onMoreTap;
 
+  String _formatShortDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day.$month';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
+    return WorkListTile(
       onTap: () => context.push('/orders/${order.id}'),
-      color: DeskflowColors.shellGlassSurface,
-      borderColor: DeskflowColors.glassBorderStrong.withValues(alpha: 0.7),
-      padding: const EdgeInsets.all(DeskflowSpacing.md),
-      child: Row(
+      onLongPress: onMoreTap,
+      title: Row(
         children: [
+          Text(
+            order.formattedNumber,
+            style: DeskflowTypography.body.copyWith(
+              fontWeight: FontWeight.w600,
+              fontFeatures: [const FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(width: DeskflowSpacing.sm),
+          Text(
+            '·',
+            style: DeskflowTypography.meta,
+          ),
+          const SizedBox(width: DeskflowSpacing.sm),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(order.formattedNumber, style: DeskflowTypography.h3),
-                    const SizedBox(width: DeskflowSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        order.customerName ?? 'Без клиента',
-                        style: DeskflowTypography.bodySmall,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: DeskflowSpacing.xs),
-                Text(
-                  CurrencyFormatter.formatCompact(order.totalAmount),
-                  style: DeskflowTypography.body,
-                ),
-              ],
+            child: Text(
+              order.customerName ?? 'Без клиента',
+              style: DeskflowTypography.body.copyWith(
+                color: DeskflowColors.textSecondary,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          IconButton(
-            onPressed: onMoreTap,
-            icon: const Icon(
-              Icons.more_horiz_rounded,
-              color: DeskflowColors.textSecondary,
-            ),
-          ),
-          if (order.status != null)
-            StatusPillBadge(
+        ],
+      ),
+      subtitle: Text(
+        _formatShortDate(order.createdAt),
+        style: DeskflowTypography.meta,
+      ),
+      badge: order.status != null
+          ? StatusPillBadge(
               label: order.status!.name,
               color: order.status!.materialColor,
-            ),
-        ],
+            )
+          : null,
+      trailing: Text(
+        CurrencyFormatter.formatCompact(order.totalAmount),
       ),
     );
   }
@@ -996,6 +1019,7 @@ class _OrderCard extends StatelessWidget {
 
 class _CompactFilterTrigger extends StatelessWidget {
   const _CompactFilterTrigger({
+    super.key,
     required this.title,
     required this.value,
     required this.active,
@@ -1011,7 +1035,7 @@ class _CompactFilterTrigger extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(DeskflowRadius.card),
+      borderRadius: BorderRadius.circular(DeskflowRadius.workTile),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(
@@ -1020,22 +1044,15 @@ class _CompactFilterTrigger extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: active
-              ? DeskflowColors.shellGlassSurface
-              : DeskflowColors.glassSurface,
-          borderRadius: BorderRadius.circular(DeskflowRadius.card),
+              ? DeskflowColors.workSurfaceElevated
+              : DeskflowColors.workSurface,
+          borderRadius: BorderRadius.circular(DeskflowRadius.workTile),
           border: Border.all(
             color: active
-                ? DeskflowColors.glassBorderStrong.withValues(alpha: 0.62)
-                : DeskflowColors.glassBorderStrong.withValues(alpha: 0.42),
-            width: 0.75,
+                ? DeskflowColors.workBorder
+                : DeskflowColors.workBorderSubtle,
+            width: 0.5,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: active ? 0.1 : 0.06),
-              blurRadius: active ? 14 : 10,
-              offset: const Offset(0, 8),
-            ),
-          ],
         ),
         child: Row(
           children: [
@@ -1043,7 +1060,7 @@ class _CompactFilterTrigger extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: DeskflowTypography.caption),
+                  Text(title, style: DeskflowTypography.meta),
                   const SizedBox(height: 1),
                   Text(
                     value,
@@ -1061,7 +1078,8 @@ class _CompactFilterTrigger extends StatelessWidget {
               active
                   ? Icons.keyboard_arrow_up_rounded
                   : Icons.keyboard_arrow_down_rounded,
-              color: DeskflowColors.textSecondary,
+              color: DeskflowColors.textTertiary,
+              size: 18,
             ),
           ],
         ),
@@ -1085,46 +1103,54 @@ class _OrdersBottomSheetScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
-    final maxHeight = mediaQuery.size.height *
+    final screenSize = MediaQuery.sizeOf(context);
+    final maxHeight = screenSize.height *
         (maxHeightFactor ?? (wrapContent ? 0.35 : 0.46));
-    final sheetBody = GlassCard(
-        elevated: true,
+    final sheetBody = Container(
         margin: EdgeInsets.zero,
-        padding: EdgeInsets.zero,
-        borderRadius: DeskflowRadius.overlay,
-        child: SafeArea(
-          top: false,
-          child: SingleChildScrollView(
-            primary: false,
-            padding: EdgeInsets.fromLTRB(
-              DeskflowSpacing.md,
-              DeskflowSpacing.xs,
-              DeskflowSpacing.md,
-              DeskflowSpacing.sm + mediaQuery.viewInsets.bottom,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 34,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: DeskflowSpacing.xs),
-                    decoration: BoxDecoration(
-                      color: DeskflowColors.textTertiary.withValues(alpha: 0.72),
-                      borderRadius: BorderRadius.circular(DeskflowRadius.pill),
+        decoration: BoxDecoration(
+          color: DeskflowColors.workSurfaceElevated,
+          borderRadius: BorderRadius.circular(DeskflowRadius.workSheet),
+          border: Border.all(
+            color: DeskflowColors.workBorder,
+            width: 0.5,
+          ),
+        ),
+        child: Material(
+          type: MaterialType.transparency,
+          child: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              primary: false,
+              padding: EdgeInsets.fromLTRB(
+                DeskflowSpacing.md,
+                DeskflowSpacing.xs,
+                DeskflowSpacing.md,
+                DeskflowSpacing.sm + MediaQuery.viewInsetsOf(context).bottom,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 34,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: DeskflowSpacing.xs),
+                      decoration: BoxDecoration(
+                        color: DeskflowColors.workBorder,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                Text(
-                  title,
-                  style: DeskflowTypography.h2.copyWith(fontSize: 17),
-                ),
-                const SizedBox(height: DeskflowSpacing.xs),
-                child,
-              ],
+                  Text(
+                    title,
+                    style: DeskflowTypography.pageTitle.copyWith(fontSize: 17),
+                  ),
+                  const SizedBox(height: DeskflowSpacing.xs),
+                  child,
+                ],
+              ),
             ),
           ),
         ),
@@ -1275,18 +1301,12 @@ class _SheetPanelSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: DeskflowColors.glassSurface.withValues(alpha: 0.88),
-        borderRadius: BorderRadius.circular(DeskflowRadius.card),
+        color: DeskflowColors.workSurface,
+        borderRadius: BorderRadius.circular(DeskflowRadius.workTile),
         border: Border.all(
-          color: DeskflowColors.glassBorderStrong.withValues(alpha: 0.38),
+          color: DeskflowColors.workBorderSubtle,
+          width: 0.5,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
-          ),
-        ],
       ),
       padding: const EdgeInsets.symmetric(
         horizontal: DeskflowSpacing.sm,
@@ -1356,6 +1376,7 @@ class _DatePanel extends StatelessWidget {
                   child: TextField(
                     controller: singleDateController,
                     keyboardType: TextInputType.datetime,
+                    inputFormatters: [DottedDateTextInputFormatter()],
                     decoration: const InputDecoration(
                       labelText: 'Дата',
                       hintText: 'ДД.ММ.ГГГГ',
@@ -1375,6 +1396,7 @@ class _DatePanel extends StatelessWidget {
                 TextField(
                   controller: rangeStartController,
                   keyboardType: TextInputType.datetime,
+                  inputFormatters: [DottedDateTextInputFormatter()],
                   decoration: const InputDecoration(
                     labelText: 'От',
                     hintText: 'ДД.ММ.ГГГГ',
@@ -1384,6 +1406,7 @@ class _DatePanel extends StatelessWidget {
                 TextField(
                   controller: rangeEndController,
                   keyboardType: TextInputType.datetime,
+                  inputFormatters: [DottedDateTextInputFormatter()],
                   decoration: const InputDecoration(
                     labelText: 'До',
                     hintText: 'ДД.ММ.ГГГГ',
@@ -1571,20 +1594,20 @@ class _AmountPanelState extends State<_AmountPanel> {
   }
 
   String _formatAmount(double value) {
-    return value == value.roundToDouble()
+    final raw = value == value.roundToDouble()
         ? value.toInt().toString()
         : value.toStringAsFixed(0);
+    return GroupedNumberTextInputFormatter().formatEditUpdate(
+      const TextEditingValue(),
+      TextEditingValue(text: raw),
+    ).text;
   }
 
   void _applyManualValues() {
-    final min = double.tryParse(
-          _minController.text.replaceAll(RegExp(r'[^\d.]'), ''),
-        ) ??
-        widget.amountDraftValues.start;
-    final max = double.tryParse(
-          _maxController.text.replaceAll(RegExp(r'[^\d.]'), ''),
-        ) ??
-        widget.amountDraftValues.end;
+    final min =
+        parseFormattedNumber(_minController.text) ?? widget.amountDraftValues.start;
+    final max =
+        parseFormattedNumber(_maxController.text) ?? widget.amountDraftValues.end;
 
     final clampedMin = min.clamp(
       OrderAmountRange.boundsMin,
@@ -1621,6 +1644,7 @@ class _AmountPanelState extends State<_AmountPanel> {
               child: TextField(
                 controller: _minController,
                 keyboardType: TextInputType.number,
+                inputFormatters: [GroupedNumberTextInputFormatter()],
                 decoration: const InputDecoration(
                   labelText: 'От',
                   isDense: true,
@@ -1650,6 +1674,7 @@ class _AmountPanelState extends State<_AmountPanel> {
               child: TextField(
                 controller: _maxController,
                 keyboardType: TextInputType.number,
+                inputFormatters: [GroupedNumberTextInputFormatter()],
                 decoration: const InputDecoration(
                   labelText: 'До',
                   isDense: true,
@@ -1734,9 +1759,9 @@ class _InlineOrdersCalendar extends StatelessWidget {
         DeskflowSpacing.xs,
       ),
       decoration: BoxDecoration(
-        color: DeskflowColors.modalSurface.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(DeskflowRadius.card),
-        border: Border.all(color: DeskflowColors.glassBorder),
+        color: DeskflowColors.workSurface,
+        borderRadius: BorderRadius.circular(DeskflowRadius.workTile),
+        border: Border.all(color: DeskflowColors.workBorderSubtle, width: 0.5),
       ),
       child: Column(
         children: [
@@ -1800,7 +1825,7 @@ class _InlineOrdersCalendar extends StatelessWidget {
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(DeskflowRadius.md),
                     border: isToday && !isSelected && !isRangeEdge && !isDraftStart
-                        ? Border.all(color: DeskflowColors.glassBorderStrong)
+                        ? Border.all(color: DeskflowColors.workBorder)
                         : null,
                   ),
                   alignment: Alignment.center,
@@ -1862,12 +1887,13 @@ class _IconChipButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: active
               ? DeskflowColors.primary.withValues(alpha: 0.24)
-              : DeskflowColors.glassSurface,
+              : DeskflowColors.workSurface,
           borderRadius: BorderRadius.circular(DeskflowRadius.pill),
           border: Border.all(
             color: active
-                ? DeskflowColors.glassBorderStrong
-                : DeskflowColors.glassBorder,
+                ? DeskflowColors.workBorder
+                : DeskflowColors.workBorderSubtle,
+            width: 0.5,
           ),
         ),
         alignment: Alignment.center,

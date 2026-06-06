@@ -25,7 +25,7 @@ OrderRepository orderRepository(Ref ref) {
 Future<List<OrderStatus>> pipeline(Ref ref) async {
   final orgId = ref.watch(currentOrgIdProvider);
   if (orgId == null) return [];
-  return ref.watch(orderRepositoryProvider).getPipeline(orgId);
+  return ref.read(orderRepositoryProvider).getPipeline(orgId);
 }
 
 final ordersListControlsProvider = StateProvider<OrdersListControls>(
@@ -35,13 +35,13 @@ final ordersListControlsProvider = StateProvider<OrdersListControls>(
 final orderTemplatesProvider = FutureProvider<List<OrderTemplate>>((ref) async {
   final orgId = ref.watch(currentOrgIdProvider);
   if (orgId == null) return [];
-  return ref.watch(orderRepositoryProvider).getOrderTemplates(orgId: orgId);
+  return ref.read(orderRepositoryProvider).getOrderTemplates(orgId: orgId);
 });
 
 final duplicateOrderCompositionProvider =
     FutureProvider.family<OrderComposition, String>((ref, orderId) async {
       return ref
-          .watch(orderRepositoryProvider)
+          .read(orderRepositoryProvider)
           .getDuplicateOrderComposition(orderId);
     });
 
@@ -50,13 +50,13 @@ final recentOrderCustomersProvider = FutureProvider<List<Customer>>((
 ) async {
   final orgId = ref.watch(currentOrgIdProvider);
   if (orgId == null) return [];
-  return ref.watch(orderRepositoryProvider).getRecentCustomers(orgId: orgId);
+  return ref.read(orderRepositoryProvider).getRecentCustomers(orgId: orgId);
 });
 
 final recentOrderProductsProvider = FutureProvider<List<Product>>((ref) async {
   final orgId = ref.watch(currentOrgIdProvider);
   if (orgId == null) return [];
-  return ref.watch(orderRepositoryProvider).getRecentProducts(orgId: orgId);
+  return ref.read(orderRepositoryProvider).getRecentProducts(orgId: orgId);
 });
 
 @riverpod
@@ -70,7 +70,7 @@ class OrdersList extends _$OrdersList {
     ref.watch(currentUserProvider);
     final controls = ref.watch(ordersListControlsProvider);
     final items = await ref
-        .watch(orderRepositoryProvider)
+        .read(orderRepositoryProvider)
         .getOrders(
           orgId: orgId,
           statusId: statusId,
@@ -129,11 +129,11 @@ Future<List<Order>> ordersSearch(
   final orgId = ref.watch(currentOrgIdProvider);
   if (orgId == null) return [];
   return ref
-      .watch(orderRepositoryProvider)
+      .read(orderRepositoryProvider)
       .searchOrders(orgId: orgId, query: query, statusId: statusId);
 }
 
 @riverpod
 Future<Order> orderDetail(Ref ref, String orderId) async {
-  return ref.watch(orderRepositoryProvider).getOrder(orderId);
+  return ref.read(orderRepositoryProvider).getOrder(orderId);
 }

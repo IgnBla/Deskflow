@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -7,10 +8,10 @@ import 'package:deskflow/core/theme/deskflow_theme.dart';
 import 'package:deskflow/core/utils/app_logger.dart';
 import 'package:deskflow/core/widgets/error_state_widget.dart';
 import 'package:deskflow/core/widgets/floating_island_nav.dart';
-import 'package:deskflow/core/widgets/glass_card.dart';
 import 'package:deskflow/core/widgets/glass_floating_action_button.dart';
 import 'package:deskflow/core/widgets/pill_search_bar.dart';
 import 'package:deskflow/core/widgets/skeleton_loader.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
 import 'package:deskflow/features/products/domain/product.dart';
 import 'package:deskflow/features/products/domain/product_providers.dart';
 import 'package:deskflow/features/org/domain/org_providers.dart';
@@ -27,8 +28,7 @@ class CatalogManagementScreen extends HookConsumerWidget {
       search: searchQuery.value.isEmpty ? null : searchQuery.value,
     ));
 
-    return Scaffold(
-      backgroundColor: DeskflowColors.background,
+    return WorkScreenScaffold(
       appBar: AppBar(
         title: const Text('Управление каталогом'),
       ),
@@ -57,7 +57,8 @@ class CatalogManagementScreen extends HookConsumerWidget {
           ),
 
           Expanded(
-            child: productsAsync.when(
+            child: productsAsync.when(              skipLoadingOnRefresh: true,
+              skipLoadingOnReload: true,
               data: (paginated) {
                 final products = paginated.items;
                 if (products.isEmpty) {
@@ -134,85 +135,98 @@ class _CatalogProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      onTap: onTap,
-      child: Row(
-        children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: DeskflowColors.glassSurface,
-              borderRadius: BorderRadius.circular(DeskflowRadius.sm),
-              border: Border.all(
-                color: DeskflowColors.glassBorder,
-                width: 0.5,
-              ),
-            ),
-            child: product.imageUrl != null
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(DeskflowRadius.sm),
-                    child: Image.network(
-                      product.imageUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const Icon(
-                        Icons.image_rounded,
-                        color: DeskflowColors.textTertiary,
-                        size: 24,
-                      ),
-                    ),
-                  )
-                : const Icon(
-                    Icons.inventory_2_rounded,
-                    color: DeskflowColors.textTertiary,
-                    size: 24,
-                  ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: Key('catalog-product-row-${product.id}'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(DeskflowRadius.md),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: DeskflowColors.workSurface,
+            borderRadius: BorderRadius.circular(DeskflowRadius.md),
+            border: Border.all(color: DeskflowColors.workBorder),
           ),
-          const SizedBox(width: DeskflowSpacing.md),
-
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  product.name,
-                  style: DeskflowTypography.body.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+          padding: const EdgeInsets.all(DeskflowSpacing.md),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: DeskflowColors.workSurfaceElevated,
+                  borderRadius: BorderRadius.circular(DeskflowRadius.sm),
+                  border: Border.all(color: DeskflowColors.workBorder),
                 ),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    if (product.sku != null) ...[
-                      Text(
-                        product.sku!,
-                        style: DeskflowTypography.caption.copyWith(
-                          color: DeskflowColors.textTertiary,
+                child: product.imageUrl != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(DeskflowRadius.sm),
+                        child: CachedNetworkImage(
+                          imageUrl: product.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorWidget: (_, _, _) => const Icon(
+                            Icons.image_rounded,
+                            color: DeskflowColors.textTertiary,
+                            size: 20,
+                          ),
                         ),
+                      )
+                    : const Icon(
+                        Icons.inventory_2_rounded,
+                        color: DeskflowColors.textTertiary,
+                        size: 20,
                       ),
-                      const SizedBox(width: DeskflowSpacing.sm),
-                    ],
+              ),
+              const SizedBox(width: DeskflowSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     Text(
-                      product.formattedPrice,
-                      style: DeskflowTypography.bodySmall.copyWith(
-                        color: DeskflowColors.primarySolid,
-                        fontWeight: FontWeight.w600,
+                      product.name,
+                      style: DeskflowTypography.body.copyWith(
+                        fontWeight: FontWeight.w500,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        if (product.sku != null) ...[
+                          Flexible(
+                            child: Text(
+                              product.sku!,
+                              style: DeskflowTypography.caption.copyWith(
+                                color: DeskflowColors.workMutedText,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: DeskflowSpacing.sm),
+                        ],
+                        Text(
+                          product.formattedPrice,
+                          style: DeskflowTypography.bodySmall.copyWith(
+                            color: DeskflowColors.primarySolid,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: DeskflowSpacing.sm),
+              Switch(
+                value: product.isActive,
+                onChanged: (_) => onToggleActive(),
+                activeThumbColor: DeskflowColors.successSolid,
+              ),
+            ],
           ),
-
-          Switch(
-            value: product.isActive,
-            onChanged: (_) => onToggleActive(),
-            activeThumbColor: DeskflowColors.successSolid,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -223,12 +237,14 @@ class _CatalogLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkeletonLoader(
-      child: ListView.separated(
-        padding: const EdgeInsets.all(DeskflowSpacing.lg),
-        itemCount: 8,
-        separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
-        itemBuilder: (_, _) => SkeletonLoader.box(height: 72),
+    return SkeletonGroup(
+      child: SkeletonLoader(
+        child: ListView.separated(
+          padding: const EdgeInsets.all(DeskflowSpacing.lg),
+          itemCount: 8,
+          separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
+          itemBuilder: (_, _) => SkeletonLoader.box(height: 72),
+        ),
       ),
     );
   }

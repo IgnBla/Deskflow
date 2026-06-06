@@ -22,7 +22,7 @@ class ProductsList extends _$ProductsList {
   Future<PaginatedList<Product>> build({String? search}) async {
     final orgId = ref.watch(currentOrgIdProvider);
     if (orgId == null) return const PaginatedList(items: [], hasMore: false);
-    final items = await ref.watch(productRepositoryProvider).getProducts(
+    final items = await ref.read(productRepositoryProvider).getProducts(
           orgId: orgId,
           search: search,
           limit: _pageSize,
@@ -65,7 +65,7 @@ class ProductsList extends _$ProductsList {
 Future<List<Product>> activeProducts(Ref ref, {String? search}) async {
   final orgId = ref.watch(currentOrgIdProvider);
   if (orgId == null) return [];
-  return ref.watch(productRepositoryProvider).getProducts(
+  return ref.read(productRepositoryProvider).getProducts(
         orgId: orgId,
         search: search,
         activeOnly: true,
@@ -74,5 +74,5 @@ Future<List<Product>> activeProducts(Ref ref, {String? search}) async {
 
 @riverpod
 Future<Product> productDetail(Ref ref, String productId) async {
-  return ref.watch(productRepositoryProvider).getProduct(productId);
+  return ref.read(productRepositoryProvider).getProduct(productId);
 }

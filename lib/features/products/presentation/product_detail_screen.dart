@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -30,7 +31,8 @@ class ProductDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: productAsync.when(
+      body: productAsync.when(        skipLoadingOnRefresh: true,
+        skipLoadingOnReload: true,
         data: (product) => _ProductContent(product: product),
         loading: () => const _ProductDetailSkeleton(),
         error: (error, _) => ErrorStateWidget(
@@ -153,10 +155,10 @@ class _ProductHero extends StatelessWidget {
           borderRadius: BorderRadius.circular(DeskflowRadius.lg),
         ),
         child: product.imageUrl != null
-            ? Image.network(
-                product.imageUrl!,
+            ? CachedNetworkImage(
+                imageUrl: product.imageUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => const _PlaceholderIcon(),
+                errorWidget: (_, _, _) => const _PlaceholderIcon(),
               )
             : const _PlaceholderIcon(),
       ),
@@ -207,16 +209,18 @@ class _ProductDetailSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkeletonLoader(
-      child: ListView(
-        padding: const EdgeInsets.all(DeskflowSpacing.lg),
-        children: [
-          SkeletonLoader.box(height: 200),
-          const SizedBox(height: DeskflowSpacing.lg),
-          SkeletonLoader.box(height: 180),
-          const SizedBox(height: DeskflowSpacing.lg),
-          SkeletonLoader.box(height: 120),
-        ],
+    return SkeletonGroup(
+      child: SkeletonLoader(
+        child: ListView(
+          padding: const EdgeInsets.all(DeskflowSpacing.lg),
+          children: [
+            SkeletonLoader.box(height: 200),
+            const SizedBox(height: DeskflowSpacing.lg),
+            SkeletonLoader.box(height: 180),
+            const SizedBox(height: DeskflowSpacing.lg),
+            SkeletonLoader.box(height: 120),
+          ],
+        ),
       ),
     );
   }

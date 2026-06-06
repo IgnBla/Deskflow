@@ -13,6 +13,17 @@ class DeskflowColors {
   static const Color auroraBlue = Color(0xFF66B8FF);
   static const Color auroraHalo = Color(0xFFF5EEFF);
 
+  // ── Work surfaces (matte, no blur — for data-heavy screens) ──
+  static const Color workBackground = Color(0xFF090C11);
+  static const Color workSurface = Color(0xFF0E1117);
+  static const Color workSurfaceElevated = Color(0xFF141820);
+  static const Color workSurfaceHover = Color(0xFF181D27);
+  static const Color workBorder = Color(0xFF1E2430);
+  static const Color workBorderSubtle = Color(0xFF161B24);
+  static const Color workDivider = Color(0xFF1A1F2A);
+  static const Color workPrimaryAction = Color(0xFFE4EDF7);
+  static const Color workMutedText = Color(0xFFA7B1BD);
+
   static const Color glassSurface = Color(0x96141820);
 
   static const Color glassSurfaceElevated = Color(0xB61A1F28);
@@ -102,6 +113,34 @@ class DeskflowTypography {
     fontWeight: FontWeight.w500,
     color: DeskflowColors.textPrimary,
   );
+
+  // ── Work-screen typography (higher density, quieter) ──
+  static const TextStyle pageTitle = TextStyle(
+    fontSize: 20,
+    fontWeight: FontWeight.w600,
+    color: DeskflowColors.textPrimary,
+    letterSpacing: -0.3,
+  );
+
+  static const TextStyle sectionTitle = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.w600,
+    color: DeskflowColors.textTertiary,
+    letterSpacing: 0.4,
+  );
+
+  static const TextStyle bodyMono = TextStyle(
+    fontSize: 14,
+    fontWeight: FontWeight.w500,
+    color: DeskflowColors.textPrimary,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+
+  static const TextStyle meta = TextStyle(
+    fontSize: 12,
+    fontWeight: FontWeight.w400,
+    color: DeskflowColors.textTertiary,
+  );
 }
 
 class DeskflowSpacing {
@@ -128,6 +167,65 @@ class DeskflowRadius {
   static const double field = 18;
   static const double overlay = 28;
   static const double nav = 26;
+
+  // ── Work-screen radii (reduced, more utilitarian) ──
+  static const double workCard = 14;
+  static const double workTile = 10;
+  static const double workSheet = 20;
+}
+
+/// Responsive breakpoints for adaptive layouts.
+///
+/// Usage:
+/// ```dart
+/// final bp = DeskflowBreakpoints.of(context);
+/// bp.isCompact  // phones < 600
+/// bp.isMedium   // small tablets 600–839
+/// bp.isExpanded // tablets / desktop >= 840
+/// ```
+class DeskflowBreakpoints {
+  DeskflowBreakpoints._();
+
+  static const double compact = 600;
+  static const double medium = 840;
+  static const double expanded = 1200;
+
+  /// Convenience accessor from [BuildContext].
+  static DeskflowBreakpointData of(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    return DeskflowBreakpointData._(width);
+  }
+}
+
+class DeskflowBreakpointData {
+  const DeskflowBreakpointData._(this.width);
+
+  final double width;
+
+  bool get isCompact => width < DeskflowBreakpoints.compact;
+  bool get isMedium =>
+      width >= DeskflowBreakpoints.compact && width < DeskflowBreakpoints.medium;
+  bool get isExpanded => width >= DeskflowBreakpoints.medium;
+
+  /// Horizontal page padding that adapts to screen width.
+  double get horizontalPadding {
+    if (isCompact) return DeskflowSpacing.lg;
+    if (isMedium) return DeskflowSpacing.xl;
+    return DeskflowSpacing.xxl;
+  }
+
+  /// Recommended content max-width for readability on wide screens.
+  double? get maxContentWidth {
+    if (isExpanded) return 720;
+    return null; // fill available width
+  }
+
+  /// Number of columns for grid layouts.
+  int get gridColumns {
+    if (isCompact) return 1;
+    if (isMedium) return 2;
+    return 3;
+  }
 }
 
 ThemeData buildDeskflowTheme({bool animationsEnabled = true}) {

@@ -8,6 +8,8 @@ import 'package:deskflow/features/org/domain/org_member.dart';
 import 'package:deskflow/features/org/domain/org_providers.dart';
 import 'package:deskflow/features/org/domain/organization.dart';
 import 'package:deskflow/features/profile/presentation/profile_screen.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
+import 'package:deskflow/core/widgets/work_settings_group.dart';
 
 Widget _buildTestApp({
   User? user,
@@ -176,6 +178,16 @@ void main() {
       expect(find.text('Настройки'), findsOneWidget);
       expect(find.text('Уведомления'), findsOneWidget);
       expect(find.text('О приложении'), findsOneWidget);
+    });
+
+    testWidgets('uses work shell with grouped settings sections', (tester) async {
+      final user = _makeUser(email: 'user@org.com');
+      await tester.pumpWidget(_buildTestApp(user: user));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(WorkScreenScaffold), findsOneWidget);
+      expect(find.byType(WorkSettingsGroup), findsAtLeastNWidgets(2));
+      expect(find.byType(BackdropFilter), findsNothing);
     });
 
     testWidgets('email initial when no full name', (tester) async {

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +13,8 @@ import 'package:deskflow/core/widgets/glass_chip.dart';
 import 'package:deskflow/core/widgets/pill_search_bar.dart';
 import 'package:deskflow/core/widgets/skeleton_loader.dart';
 import 'package:deskflow/core/widgets/status_pill_badge.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
+import 'package:deskflow/core/widgets/work_section_header.dart';
 import 'package:deskflow/features/orders/domain/customer.dart';
 import 'package:deskflow/features/orders/domain/order.dart';
 import 'package:deskflow/features/orders/domain/order_providers.dart';
@@ -87,8 +90,7 @@ class UniversalSearchScreen extends HookConsumerWidget {
         ? ref.watch(pipelineProvider)
         : const AsyncValue<List<OrderStatus>>.data(<OrderStatus>[]);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return WorkScreenScaffold(
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -158,7 +160,8 @@ class UniversalSearchScreen extends HookConsumerWidget {
     required AsyncValue<SearchResults> browseAsync,
     required SearchFilter filter,
   }) {
-    return browseAsync.when(
+    return browseAsync.when(      skipLoadingOnRefresh: true,
+      skipLoadingOnReload: true,
       data: (results) => SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -202,7 +205,8 @@ class UniversalSearchScreen extends HookConsumerWidget {
     required Future<void> Function(SearchHistoryEntry entry) onRunHistory,
     required void Function(SearchHistoryEntry entry) onInsertHistory,
   }) {
-    return historyAsync.when(
+    return historyAsync.when(      skipLoadingOnRefresh: true,
+      skipLoadingOnReload: true,
       data: (entries) {
         if (entries.isEmpty) {
           return const SliverToBoxAdapter(child: SizedBox(height: 120));
@@ -242,7 +246,8 @@ class UniversalSearchScreen extends HookConsumerWidget {
     required SearchFilter filter,
     required String query,
   }) {
-    return searchAsync.when(
+    return searchAsync.when(      skipLoadingOnRefresh: true,
+      skipLoadingOnReload: true,
       data: (results) => SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(
@@ -299,9 +304,11 @@ class _PinnedHeaderDelegate extends SliverPersistentHeaderDelegate {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              Colors.black.withValues(alpha: 0.08),
+              Colors.black.withValues(alpha: 0.72),
+              Colors.black.withValues(alpha: 0.38),
               Colors.transparent,
             ],
+            stops: const [0.0, 0.6, 1.0],
           ),
         ),
         child: Padding(
@@ -383,7 +390,8 @@ class _SearchFilterBar extends StatelessWidget {
             label: 'Товары',
           ),
           if (selectedFilter == SearchFilter.orders)
-            ...pipelineAsync.when(
+            ...pipelineAsync.when(              skipLoadingOnRefresh: true,
+              skipLoadingOnReload: true,
               data: (statuses) => [
                 for (final status in statuses) ...[
                   const SizedBox(width: DeskflowSpacing.sm),
@@ -697,39 +705,27 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Text(title, style: DeskflowTypography.h3),
-        const SizedBox(width: DeskflowSpacing.sm),
-        Container(
-          key: Key('search-section-count-$title'),
-          padding: const EdgeInsets.symmetric(
-            horizontal: DeskflowSpacing.sm,
-            vertical: 2,
-          ),
-          decoration: BoxDecoration(
-            color: DeskflowColors.modalSurface.withValues(alpha: 0.88),
-            borderRadius: BorderRadius.circular(DeskflowRadius.pill),
-            border: Border.all(
-              color: DeskflowColors.glassBorderStrong.withValues(alpha: 0.62),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.14),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Text(
-            '$count',
-            style: DeskflowTypography.caption.copyWith(
-              color: DeskflowColors.textPrimary.withValues(alpha: 0.94),
-              fontWeight: FontWeight.w600,
-            ),
+    return WorkSectionHeader(
+      title: title,
+      action: Container(
+        key: Key('search-section-count-$title'),
+        padding: const EdgeInsets.symmetric(
+          horizontal: DeskflowSpacing.sm,
+          vertical: 4,
+        ),
+        decoration: BoxDecoration(
+          color: DeskflowColors.workSurfaceElevated,
+          borderRadius: BorderRadius.circular(DeskflowRadius.pill),
+          border: Border.all(color: DeskflowColors.workBorder),
+        ),
+        child: Text(
+          '$count',
+          style: DeskflowTypography.caption.copyWith(
+            color: DeskflowColors.workMutedText,
+            fontWeight: FontWeight.w600,
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -741,20 +737,17 @@ class _OrderResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
+    return _SearchResultRowShell(
+      rowKey: Key('search-order-row-${order.id}'),
       onTap: () => context.push('/orders/${order.id}'),
-      color: DeskflowColors.shellGlassSurface,
-      borderColor: DeskflowColors.glassBorderStrong.withValues(alpha: 0.7),
-      padding: const EdgeInsets.all(DeskflowSpacing.md),
       child: Row(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color:
-                  order.status?.materialColor.withValues(alpha: 0.2) ??
-                  DeskflowColors.shellGlassSurfaceFocused,
+              color: order.status?.materialColor.withValues(alpha: 0.16) ??
+                  DeskflowColors.workSurfaceElevated,
               borderRadius: BorderRadius.circular(DeskflowRadius.sm),
             ),
             child: Center(
@@ -777,15 +770,17 @@ class _OrderResultCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 4),
                 Row(
                   children: [
                     if (order.status != null)
-                      StatusPillBadge(
-                        label: order.status!.name,
-                        color: order.status!.materialColor,
+                      Flexible(
+                        child: StatusPillBadge(
+                          label: order.status!.name,
+                          color: order.status!.materialColor,
+                        ),
                       ),
-                    const Spacer(),
+                    const SizedBox(width: DeskflowSpacing.sm),
                     _TrailingMetricBadge(
                       key: Key('search-order-amount-pill-${order.id}'),
                       label: CurrencyFormatter.formatCompact(order.totalAmount),
@@ -814,18 +809,16 @@ class _CustomerResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
+    return _SearchResultRowShell(
+      rowKey: Key('search-customer-row-${customer.id}'),
       onTap: () => context.push('/customers/${customer.id}'),
-      color: DeskflowColors.shellGlassSurface,
-      borderColor: DeskflowColors.glassBorderStrong.withValues(alpha: 0.7),
-      padding: const EdgeInsets.all(DeskflowSpacing.md),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: const BoxDecoration(
-              color: DeskflowColors.shellGlassSurfaceFocused,
+              color: DeskflowColors.workSurfaceElevated,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -882,27 +875,25 @@ class _ProductResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
+    return _SearchResultRowShell(
+      rowKey: Key('search-product-row-${product.id}'),
       onTap: () => context.push('/products/${product.id}'),
-      color: DeskflowColors.shellGlassSurface,
-      borderColor: DeskflowColors.glassBorderStrong.withValues(alpha: 0.7),
-      padding: const EdgeInsets.all(DeskflowSpacing.md),
       child: Row(
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: DeskflowColors.shellGlassSurfaceFocused,
+              color: DeskflowColors.workSurfaceElevated,
               borderRadius: BorderRadius.circular(DeskflowRadius.sm),
             ),
             child: product.imageUrl != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(DeskflowRadius.sm),
-                    child: Image.network(
-                      product.imageUrl!,
+                    child: CachedNetworkImage(
+                      imageUrl: product.imageUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const Icon(
+                      errorWidget: (_, _, _) => const Icon(
                         Icons.inventory_2_outlined,
                         size: 20,
                         color: DeskflowColors.textTertiary,
@@ -939,16 +930,14 @@ class _ProductResultCard extends StatelessWidget {
             key: Key('search-product-price-pill-${product.id}'),
             label: product.formattedPrice,
           ),
-          const SizedBox(width: DeskflowSpacing.sm),
-          if (!product.isActive)
+          if (!product.isActive) ...[
+            const SizedBox(width: DeskflowSpacing.xs),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: DeskflowColors.shellGlassSurfaceFocused,
+                color: DeskflowColors.workSurfaceElevated,
                 borderRadius: BorderRadius.circular(DeskflowRadius.pill),
-                border: Border.all(
-                  color: DeskflowColors.glassBorderStrong.withValues(alpha: 0.55),
-                ),
+                border: Border.all(color: DeskflowColors.workBorder),
               ),
               child: Text(
                 'Скрыт',
@@ -958,6 +947,8 @@ class _ProductResultCard extends StatelessWidget {
                 ),
               ),
             ),
+          ],
+          const SizedBox(width: DeskflowSpacing.xs),
           const Icon(
             Icons.chevron_right_rounded,
             size: 20,
@@ -982,24 +973,48 @@ class _TrailingMetricBadge extends StatelessWidget {
         vertical: 6,
       ),
       decoration: BoxDecoration(
-        color: DeskflowColors.modalSurface.withValues(alpha: 0.86),
+        color: DeskflowColors.workSurfaceElevated,
         borderRadius: BorderRadius.circular(DeskflowRadius.pill),
-        border: Border.all(
-          color: DeskflowColors.glassBorderStrong.withValues(alpha: 0.58),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.14),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
-          ),
-        ],
+        border: Border.all(color: DeskflowColors.workBorder),
       ),
       child: Text(
         label,
         style: DeskflowTypography.caption.copyWith(
           color: DeskflowColors.textPrimary.withValues(alpha: 0.96),
           fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchResultRowShell extends StatelessWidget {
+  const _SearchResultRowShell({
+    required this.rowKey,
+    required this.child,
+    required this.onTap,
+  });
+
+  final Key rowKey;
+  final Widget child;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: rowKey,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(DeskflowRadius.md),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: DeskflowColors.workSurface,
+            borderRadius: BorderRadius.circular(DeskflowRadius.md),
+            border: Border.all(color: DeskflowColors.workBorder),
+          ),
+          padding: const EdgeInsets.all(DeskflowSpacing.md),
+          child: child,
         ),
       ),
     );

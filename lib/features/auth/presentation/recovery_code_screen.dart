@@ -32,6 +32,8 @@ class _RecoveryCodeScreenState extends ConsumerState<RecoveryCodeScreen> {
       List.generate(_codeLength, (_) => TextEditingController());
   final List<FocusNode> _focusNodes =
       List.generate(_codeLength, (_) => FocusNode());
+  final List<FocusNode> _keyListenerFocusNodes =
+      List.generate(_codeLength, (_) => FocusNode());
 
   int _cooldownSeconds = 0;
   Timer? _cooldownTimer;
@@ -49,6 +51,9 @@ class _RecoveryCodeScreenState extends ConsumerState<RecoveryCodeScreen> {
       c.dispose();
     }
     for (final f in _focusNodes) {
+      f.dispose();
+    }
+    for (final f in _keyListenerFocusNodes) {
       f.dispose();
     }
     super.dispose();
@@ -265,7 +270,7 @@ class _RecoveryCodeScreenState extends ConsumerState<RecoveryCodeScreen> {
                         right: i == _codeLength - 1 ? 0 : 6,
                       ),
                       child: KeyboardListener(
-                        focusNode: FocusNode(),
+                        focusNode: _keyListenerFocusNodes[i],
                         onKeyEvent: (event) => _onKeyEvent(i, event),
                         child: TextFormField(
                           controller: _controllers[i],

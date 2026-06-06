@@ -36,7 +36,7 @@ class ChatNotifier extends _$ChatNotifier {
     _log.d('build: orderId=$orderId');
 
     final messages = await ref
-        .watch(chatRepositoryProvider)
+        .read(chatRepositoryProvider)
         .getMessages(orderId: orderId);
 
     _subscribeRealtime();

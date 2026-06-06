@@ -5,9 +5,13 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:deskflow/core/theme/deskflow_theme.dart';
 import 'package:deskflow/core/utils/currency_formatter.dart';
 import 'package:deskflow/core/widgets/error_state_widget.dart';
-import 'package:deskflow/core/widgets/glass_card.dart';
 import 'package:deskflow/core/widgets/skeleton_loader.dart';
 import 'package:deskflow/core/widgets/status_pill_badge.dart';
+import 'package:deskflow/core/widgets/surface_card.dart';
+import 'package:deskflow/core/widgets/work_list_tile.dart';
+import 'package:deskflow/core/widgets/work_primary_action_bar.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
+import 'package:deskflow/core/widgets/work_section_header.dart';
 import 'package:deskflow/features/orders/domain/audit_event.dart';
 import 'package:deskflow/features/orders/domain/order.dart';
 import 'package:deskflow/features/orders/domain/order_providers.dart';
@@ -23,8 +27,7 @@ class OrderDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final orderAsync = ref.watch(orderDetailProvider(orderId));
 
-    return Scaffold(
-      backgroundColor: DeskflowColors.background,
+    return WorkScreenScaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -52,7 +55,8 @@ class OrderDetailScreen extends ConsumerWidget {
             ),
         ],
       ),
-      body: orderAsync.when(
+      body: orderAsync.when(        skipLoadingOnRefresh: true,
+        skipLoadingOnReload: true,
         loading: () => const _LoadingSkeleton(),
         error: (error, _) => ErrorStateWidget(
           message: error.toString(),
@@ -62,6 +66,9 @@ class OrderDetailScreen extends ConsumerWidget {
           order: order,
           orderId: orderId,
         ),
+      ),
+      bottomActionBar: orderAsync.whenOrNull(
+        data: (order) => _BottomActionBar(order: order, orderId: orderId),
       ),
     );
   }
@@ -78,143 +85,137 @@ class _OrderDetailBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Column(
-      children: [
-        Expanded(
-          child: RefreshIndicator(
-            color: DeskflowColors.primarySolid,
-            onRefresh: () async {
-              ref.invalidate(orderDetailProvider(orderId));
-            },
-            child: ListView(
-              padding: const EdgeInsets.all(DeskflowSpacing.lg),
-              children: [
-                _HeaderSection(order: order),
-                const SizedBox(height: DeskflowSpacing.lg),
+    return RefreshIndicator(
+      color: DeskflowColors.primarySolid,
+      onRefresh: () async {
+        ref.invalidate(orderDetailProvider(orderId));
+      },
+      child: ListView(
+        padding: const EdgeInsets.all(DeskflowSpacing.lg),
+        children: [
+          _HeaderSection(order: order),
+          const SizedBox(height: DeskflowSpacing.lg),
 
-                if (order.customerName != null) ...[
-                  _SectionTitle(title: 'Клиент'),
-                  const SizedBox(height: DeskflowSpacing.sm),
-                  GlassCard(
-                    child: Row(
-                      children: [
-                        const Icon(Icons.person_outline_rounded,
-                            size: 20, color: DeskflowColors.textSecondary),
-                        const SizedBox(width: DeskflowSpacing.sm),
-                        Text(order.customerName!,
-                            style: DeskflowTypography.body),
-                      ],
+          if (order.customerName != null) ...[
+            const _SectionTitle(title: 'Клиент'),
+            SurfaceCard(
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.person_outline_rounded,
+                    size: 20,
+                    color: DeskflowColors.textSecondary,
+                  ),
+                  const SizedBox(width: DeskflowSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      order.customerName!,
+                      style: DeskflowTypography.body,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(height: DeskflowSpacing.lg),
                 ],
+              ),
+            ),
+            const SizedBox(height: DeskflowSpacing.lg),
+          ],
 
-                _SectionTitle(title: 'Товары (${order.items.length})'),
-                const SizedBox(height: DeskflowSpacing.sm),
-                if (order.items.isEmpty)
-                  GlassCard(
-                    child: Center(
-                      child: Text(
-                        'Нет товаров',
-                        style: DeskflowTypography.bodySmall,
-                      ),
-                    ),
-                  )
-                else
-                  ...order.items.map((item) => Padding(
-                        padding: const EdgeInsets.only(
-                            bottom: DeskflowSpacing.xs),
-                        child: GlassCard(
-                          padding:
-                              const EdgeInsets.all(DeskflowSpacing.md),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(item.productName,
-                                        style: DeskflowTypography.body),
-                                    const SizedBox(
-                                        height: DeskflowSpacing.xs),
-                                    Text(
-                                      '${item.quantity} × ${CurrencyFormatter.formatCompact(item.unitPrice)}',
-                                      style:
-                                          DeskflowTypography.bodySmall,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Text(
-                                CurrencyFormatter.formatCompact(item.subtotal),
-                                style: DeskflowTypography.body.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
+          _SectionTitle(title: 'Товары (${order.items.length})'),
+          if (order.items.isEmpty)
+            const SurfaceCard(
+              child: Center(
+                child: Text('Нет товаров', style: DeskflowTypography.bodySmall),
+              ),
+            )
+          else
+            SurfaceCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: order.items
+                    .map(
+                      (item) => WorkListTile(
+                        key: Key('order-item-row-${item.id}'),
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: DeskflowColors.workSurfaceElevated,
+                            borderRadius: BorderRadius.circular(DeskflowRadius.sm),
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            '${item.quantity}',
+                            style: DeskflowTypography.caption.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                      )),
-
-                const SizedBox(height: DeskflowSpacing.lg),
-
-                _SectionTitle(title: 'Стоимость'),
-                const SizedBox(height: DeskflowSpacing.sm),
-                GlassCard(
-                  child: Column(
-                    children: [
-                      _CostRow(
-                          label: 'Товары',
-                          value:
-                              CurrencyFormatter.formatCompact(order.itemsTotal)),
-                      if (order.deliveryCost > 0) ...[
-                        const SizedBox(height: DeskflowSpacing.sm),
-                        _CostRow(
-                            label: 'Доставка',
-                            value:
-                                CurrencyFormatter.formatCompact(order.deliveryCost)),
-                      ],
-                      const SizedBox(height: DeskflowSpacing.sm),
-                      const Divider(color: DeskflowColors.glassBorder),
-                      const SizedBox(height: DeskflowSpacing.sm),
-                      _CostRow(
-                        label: 'Итого',
-                        value:
-                            CurrencyFormatter.formatCompact(order.grandTotal),
-                        bold: true,
+                        title: Text(item.productName),
+                        subtitle: Text(
+                          '${item.quantity} × ${CurrencyFormatter.formatCompact(item.unitPrice)}',
+                        ),
+                        trailing: Text(
+                          CurrencyFormatter.formatCompact(item.subtotal),
+                          style: DeskflowTypography.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        showDivider: order.items.last != item,
                       ),
-                    ],
-                  ),
-                ),
+                    )
+                    .toList(),
+              ),
+            ),
 
-                if (order.notes != null &&
-                    order.notes!.isNotEmpty) ...[
-                  const SizedBox(height: DeskflowSpacing.lg),
-                  _SectionTitle(title: 'Заметки'),
+          const SizedBox(height: DeskflowSpacing.lg),
+
+          const _SectionTitle(title: 'Стоимость'),
+          SurfaceCard(
+            child: Column(
+              children: [
+                _CostRow(
+                  label: 'Товары',
+                  value: CurrencyFormatter.formatCompact(order.itemsTotal),
+                ),
+                if (order.deliveryCost > 0) ...[
                   const SizedBox(height: DeskflowSpacing.sm),
-                  GlassCard(
-                    child: Text(order.notes!,
-                        style: DeskflowTypography.body),
+                  _CostRow(
+                    label: 'Доставка',
+                    value: CurrencyFormatter.formatCompact(order.deliveryCost),
                   ),
                 ],
-
-                const SizedBox(height: DeskflowSpacing.lg),
-
-                _ChatPreviewSection(orderId: orderId),
-
-                const SizedBox(height: DeskflowSpacing.lg),
-
-                _AuditLogSection(orderId: orderId),
-
-                const SizedBox(height: DeskflowSpacing.xxl),
+                const SizedBox(height: DeskflowSpacing.sm),
+                const Divider(color: DeskflowColors.workDivider),
+                const SizedBox(height: DeskflowSpacing.sm),
+                _CostRow(
+                  label: 'Итого',
+                  value: CurrencyFormatter.formatCompact(order.grandTotal),
+                  bold: true,
+                ),
               ],
             ),
           ),
-        ),
 
-        _BottomActionBar(order: order, orderId: orderId),
-      ],
+          if (order.notes != null && order.notes!.isNotEmpty) ...[
+            const SizedBox(height: DeskflowSpacing.lg),
+            const _SectionTitle(title: 'Заметки'),
+            SurfaceCard(
+              child: Text(order.notes!, style: DeskflowTypography.body),
+            ),
+          ],
+
+          const SizedBox(height: DeskflowSpacing.lg),
+
+          _ChatPreviewSection(orderId: orderId),
+
+          const SizedBox(height: DeskflowSpacing.lg),
+
+          _AuditLogSection(orderId: orderId),
+
+          const SizedBox(height: DeskflowSpacing.xxl),
+        ],
+      ),
     );
   }
 }
@@ -226,26 +227,77 @@ class _HeaderSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
+    return SurfaceCard(
+      key: const Key('order-detail-header'),
+      variant: SurfaceCardVariant.elevated,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(order.formattedNumber,
-                  style: DeskflowTypography.h1),
-              if (order.status != null)
-                StatusPillBadge(
-                  label: order.status!.name,
-                  color: order.status!.materialColor,
-                ),
-            ],
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final compactHeader = constraints.maxWidth < 420;
+
+              if (compactHeader) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      order.formattedNumber,
+                      style: DeskflowTypography.h1,
+                    ),
+                    if (order.status != null) ...[
+                      const SizedBox(height: DeskflowSpacing.sm),
+                      StatusPillBadge(
+                        label: order.status!.name,
+                        color: order.status!.materialColor,
+                      ),
+                    ],
+                  ],
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      order.formattedNumber,
+                      style: DeskflowTypography.h1,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (order.status != null) ...[
+                    const SizedBox(width: DeskflowSpacing.md),
+                    StatusPillBadge(
+                      label: order.status!.name,
+                      color: order.status!.materialColor,
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
           const SizedBox(height: DeskflowSpacing.sm),
-          Text(
-            _formatDate(order.createdAt),
-            style: DeskflowTypography.bodySmall,
+          Text(_formatDate(order.createdAt), style: DeskflowTypography.bodySmall),
+          const SizedBox(height: DeskflowSpacing.md),
+          Wrap(
+            spacing: DeskflowSpacing.lg,
+            runSpacing: DeskflowSpacing.sm,
+            children: [
+              _HeaderMeta(
+                label: 'Клиент',
+                value: order.customerName ?? 'Без клиента',
+              ),
+              _HeaderMeta(
+                label: 'Сумма',
+                value: CurrencyFormatter.formatCompact(order.grandTotal),
+              ),
+              _HeaderMeta(
+                label: 'Позиций',
+                value: '${order.items.length}',
+              ),
+            ],
           ),
         ],
       ),
@@ -276,15 +328,15 @@ class _ChatPreviewSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(title: 'Чат'),
-        const SizedBox(height: DeskflowSpacing.sm),
+        const _SectionTitle(title: 'Чат'),
         GestureDetector(
           onTap: () => context.push('/orders/$orderId/chat'),
-          child: GlassCard(
+          child: SurfaceCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                previewAsync.when(
+                previewAsync.when(                  skipLoadingOnRefresh: true,
+                  skipLoadingOnReload: true,
                   loading: () => SkeletonLoader.box(height: 60),
                   error: (e, _) => Text('Ошибка: $e',
                       style: DeskflowTypography.bodySmall),
@@ -340,7 +392,8 @@ class _ChatPreviewSection extends ConsumerWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    countAsync.when(
+                    countAsync.when(                      skipLoadingOnRefresh: true,
+                      skipLoadingOnReload: true,
                       loading: () => const SizedBox.shrink(),
                       error: (_, _) => const SizedBox.shrink(),
                       data: (count) => Text(
@@ -377,22 +430,22 @@ class _AuditLogSection extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(title: 'История'),
-        const SizedBox(height: DeskflowSpacing.sm),
-        auditAsync.when(
+        const _SectionTitle(title: 'История'),
+        auditAsync.when(          skipLoadingOnRefresh: true,
+          skipLoadingOnReload: true,
           loading: () => SkeletonLoader.box(height: 80),
           error: (e, _) => Text('Ошибка: $e',
               style: DeskflowTypography.bodySmall),
           data: (events) {
             if (events.isEmpty) {
-              return GlassCard(
+              return const SurfaceCard(
                 child: Text(
                   'Нет записей',
                   style: DeskflowTypography.bodySmall,
                 ),
               );
             }
-            return GlassCard(
+            return SurfaceCard(
               padding: const EdgeInsets.symmetric(
                 horizontal: DeskflowSpacing.md,
                 vertical: DeskflowSpacing.sm,
@@ -413,7 +466,7 @@ class _AuditLogSection extends ConsumerWidget {
 
 final _auditLogProvider =
     FutureProvider.family<List<AuditEvent>, String>((ref, orderId) {
-  return ref.watch(orderRepositoryProvider).getOrderAuditLog(orderId);
+  return ref.read(orderRepositoryProvider).getOrderAuditLog(orderId);
 });
 
 class _AuditEventRow extends StatelessWidget {
@@ -496,56 +549,27 @@ class _BottomActionBar extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isFinal = order.status?.isFinal ?? false;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(
-        DeskflowSpacing.lg,
-        DeskflowSpacing.md,
-        DeskflowSpacing.lg,
-        DeskflowSpacing.lg,
-      ),
-      decoration: const BoxDecoration(
-        color: DeskflowColors.glassSurface,
-        border: Border(
-          top: BorderSide(
-            color: DeskflowColors.glassBorder,
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: FilledButton.icon(
-                  onPressed: isFinal
-                      ? null
-                      : () => _showStatusSheet(context, ref),
-                  icon: Icon(
-                    isFinal
-                        ? Icons.check_circle_outline_rounded
-                        : Icons.swap_horiz_rounded,
-                    size: 20,
-                  ),
-                  label: Text(isFinal ? 'Завершён' : 'Сменить статус'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: isFinal
-                        ? DeskflowColors.glassSurface
-                        : DeskflowColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(DeskflowRadius.pill),
-                    ),
-                  ),
-                ),
-              ),
+    return WorkPrimaryActionBar(
+      key: const Key('order-detail-action-bar'),
+      summary: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Итого',
+            style: DeskflowTypography.bodySmall.copyWith(
+              color: DeskflowColors.workMutedText,
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: DeskflowSpacing.xs),
+          Text(
+            CurrencyFormatter.formatCompact(order.grandTotal),
+            style: DeskflowTypography.h3,
+          ),
+        ],
       ),
+      label: isFinal ? 'Завершён' : 'Сменить статус',
+      onPressed: isFinal ? null : () => _showStatusSheet(context, ref),
     );
   }
 
@@ -595,7 +619,35 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(title, style: DeskflowTypography.h3);
+    return WorkSectionHeader(title: title);
+  }
+}
+
+class _HeaderMeta extends StatelessWidget {
+  const _HeaderMeta({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: DeskflowTypography.caption.copyWith(
+            color: DeskflowColors.workMutedText,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(value, style: DeskflowTypography.body),
+      ],
+    );
   }
 }
 
@@ -604,19 +656,23 @@ class _LoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(DeskflowSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SkeletonLoader.box(height: 80),
-          const SizedBox(height: DeskflowSpacing.lg),
-          SkeletonLoader.box(height: 50),
-          const SizedBox(height: DeskflowSpacing.lg),
-          SkeletonLoader.box(height: 120),
-          const SizedBox(height: DeskflowSpacing.lg),
-          SkeletonLoader.box(height: 100),
-        ],
+    return SkeletonGroup(
+      child: SkeletonLoader(
+        child: Padding(
+          padding: const EdgeInsets.all(DeskflowSpacing.lg),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SkeletonLoader.box(height: 80),
+              const SizedBox(height: DeskflowSpacing.lg),
+              SkeletonLoader.box(height: 50),
+              const SizedBox(height: DeskflowSpacing.lg),
+              SkeletonLoader.box(height: 120),
+              const SizedBox(height: DeskflowSpacing.lg),
+              SkeletonLoader.box(height: 100),
+            ],
+          ),
+        ),
       ),
     );
   }

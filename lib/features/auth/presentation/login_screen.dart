@@ -5,6 +5,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:deskflow/core/errors/deskflow_exception.dart';
 import 'package:deskflow/core/theme/deskflow_theme.dart';
 import 'package:deskflow/core/utils/app_logger.dart';
+import 'package:deskflow/core/widgets/auth_onboarding_shell.dart';
 import 'package:deskflow/core/widgets/glass_card.dart';
 import 'package:deskflow/core/widgets/glass_text_field.dart';
 import 'package:deskflow/core/widgets/pill_button.dart';
@@ -146,15 +147,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: DeskflowColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(DeskflowSpacing.xl),
-            child: Form(
-              key: _formKey,
-              child: Column(
+    return AuthOnboardingShell(
+      child: Center(
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
@@ -195,6 +193,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         controller: _passwordController,
                         obscureText: _obscurePassword,
                         textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _handleLogin(),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
@@ -279,7 +278,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ),
                 ),
               ],
-            ),
             ),
           ),
         ),

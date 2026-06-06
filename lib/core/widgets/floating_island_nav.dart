@@ -22,7 +22,7 @@ class FloatingIslandNav extends StatelessWidget {
   static const double navHeight = 64;
 
   static double totalHeight(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+    final bottomPadding = MediaQuery.viewPaddingOf(context).bottom;
     return navHeight + bottomPadding + DeskflowSpacing.sm;
   }
 
@@ -36,7 +36,7 @@ class FloatingIslandNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final motion = DeskflowMotionTheme.of(context);
-    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
+    final bottomPadding = MediaQuery.viewPaddingOf(context).bottom;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final horizontalInset = screenWidth < 380
         ? DeskflowSpacing.lg
@@ -48,11 +48,12 @@ class FloatingIslandNav extends StatelessWidget {
         right: horizontalInset,
         bottom: bottomPadding + DeskflowSpacing.sm,
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(DeskflowRadius.nav),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 34, sigmaY: 34),
-          child: Container(
+      child: RepaintBoundary(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(DeskflowRadius.nav),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+            child: Container(
             height: 64,
             decoration: BoxDecoration(
               color: DeskflowColors.shellGlassSurfaceFocused,
@@ -87,8 +88,8 @@ class FloatingIslandNav extends StatelessWidget {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final showLabel = isActive &&
-                          constraints.maxWidth >= 88 &&
-                          screenWidth >= 360;
+                          constraints.maxWidth >= 100 &&
+                          screenWidth >= 600;
 
                       return GestureDetector(
                         behavior: HitTestBehavior.opaque,
@@ -203,6 +204,7 @@ class FloatingIslandNav extends StatelessWidget {
                   ),
                 );
               }),
+            ),
             ),
           ),
         ),

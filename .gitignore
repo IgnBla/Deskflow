@@ -91,3 +91,14 @@ env.*.local
 Screenshot*.jpg
 Screenshot*.jpeg
 *.orig
+
+# Local AI, build, and index folders
+.codegraph/
+tmp/
+output/
+.agents/
+.codex/
+.ai-factory/
+.claude/
+*.apk
+

@@ -8,6 +8,9 @@ import 'package:deskflow/features/orders/domain/order_providers.dart';
 import 'package:deskflow/features/orders/presentation/create_order_screen.dart';
 import 'package:deskflow/features/products/domain/product.dart';
 import 'package:deskflow/core/theme/deskflow_theme.dart';
+import 'package:deskflow/core/utils/currency_formatter.dart';
+import 'package:deskflow/core/widgets/glass_chip.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -116,6 +119,59 @@ void main() {
     expect(find.text('Виджет А'), findsOneWidget);
   });
 
+  testWidgets('uses adaptive desktop layout and quiet quick sources on wide web', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _buildScreen(
+        templates: [template],
+        recentCustomers: [customer],
+        recentProducts: [product],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('create-order-desktop-layout')), findsOneWidget);
+    expect(find.byKey(const Key('create-order-main-column')), findsOneWidget);
+    expect(find.byKey(const Key('create-order-side-column')), findsOneWidget);
+    expect(find.byKey(const Key('quick-sources-panel')), findsOneWidget);
+    expect(find.byKey(const Key('create-order-inline-summary')), findsNothing);
+    expect(find.byType(GlassChip), findsNothing);
+  });
+
+  testWidgets('uses work screen scaffold with sticky save action', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildScreen());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(WorkScreenScaffold), findsOneWidget);
+    expect(find.text('Сохранить заказ'), findsOneWidget);
+    expect(find.byKey(const Key('create-order-action-bar')), findsOneWidget);
+  });
+
+  testWidgets('updates sticky total live when delivery cost changes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildScreen());
+    await tester.pumpAndSettle();
+
+    expect(find.text(CurrencyFormatter.formatCompact(0)), findsWidgets);
+
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Стоимость доставки (₽)'),
+      '250',
+    );
+    await tester.pump();
+
+    expect(find.text(CurrencyFormatter.formatCompact(250)), findsWidgets);
+  });
+
   testWidgets(
     'applying template to non-empty composition asks confirmation and replaces items',
     (tester) async {
@@ -143,7 +199,12 @@ void main() {
 
       expect(find.text('Заменить текущий состав заказа?'), findsOneWidget);
 
-      await tester.tap(find.text('Применить'));
+      await tester.tap(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Применить'),
+        ),
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Шаблонный товар'), findsOneWidget);
@@ -159,7 +220,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Иванов Иван'), findsWidgets);
-    expect(find.text('+79001111111'), findsOneWidget);
+    expect(find.text('+79001111111'), findsWidgets);
     expect(find.text('Нет товаров'), findsOneWidget);
   });
 
@@ -197,9 +258,9 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Сохранить как шаблон'), findsOneWidget);
+    expect(find.text('Шаблон'), findsOneWidget);
 
-    await tester.tap(find.text('Сохранить как шаблон'));
+    await tester.tap(find.text('Шаблон'));
     await tester.pumpAndSettle();
 
     expect(find.text('Новый шаблон'), findsOneWidget);
@@ -228,7 +289,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Сохранить как шаблон'));
+    await tester.tap(find.text('Шаблон'));
     await tester.pumpAndSettle();
 
     final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));

@@ -4,13 +4,14 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import 'package:deskflow/core/theme/deskflow_theme.dart';
-import 'package:deskflow/core/widgets/glass_card.dart';
+import 'package:deskflow/core/utils/use_debounced_value.dart';
 import 'package:deskflow/core/widgets/glass_floating_action_button.dart';
 import 'package:deskflow/core/widgets/pill_search_bar.dart';
 import 'package:deskflow/core/widgets/empty_state_widget.dart';
 import 'package:deskflow/core/widgets/error_state_widget.dart';
 import 'package:deskflow/core/widgets/floating_island_nav.dart';
 import 'package:deskflow/core/widgets/skeleton_loader.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
 import 'package:deskflow/features/customers/domain/customer_providers.dart';
 import 'package:deskflow/features/orders/domain/customer.dart';
 
@@ -19,10 +20,14 @@ class CustomersListScreen extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final bp = DeskflowBreakpoints.of(context);
     final searchQuery = useState('');
+    final debouncedQuery = useDebouncedValue(searchQuery.value);
     final scrollController = useScrollController();
+    final searchRef = useRef(debouncedQuery);
+    searchRef.value = debouncedQuery;
     final customersAsync = ref.watch(
-      customersListProvider(search: searchQuery.value.isEmpty ? null : searchQuery.value),
+      customersListProvider(search: debouncedQuery.isEmpty ? null : debouncedQuery),
     );
 
     useEffect(() {
@@ -31,9 +36,10 @@ class CustomersListScreen extends HookConsumerWidget {
         final maxScroll = scrollController.position.maxScrollExtent;
         final currentScroll = scrollController.position.pixels;
         if (currentScroll >= maxScroll - 200) {
+          final q = searchRef.value;
           ref
               .read(customersListProvider(
-                search: searchQuery.value.isEmpty ? null : searchQuery.value,
+                search: q.isEmpty ? null : q,
               ).notifier)
               .loadMore();
         }
@@ -41,10 +47,9 @@ class CustomersListScreen extends HookConsumerWidget {
 
       scrollController.addListener(onScroll);
       return () => scrollController.removeListener(onScroll);
-    }, [scrollController, searchQuery.value]);
+    }, [scrollController]);
 
-    return Scaffold(
-      backgroundColor: Colors.transparent,
+    return WorkScreenScaffold(
       appBar: AppBar(
         title: const Text('Клиенты'),
         leading: context.canPop()
@@ -54,8 +59,13 @@ class CustomersListScreen extends HookConsumerWidget {
               )
             : null,
       ),
-      body: Column(
-        children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: bp.isExpanded ? 980 : double.infinity,
+          ),
+          child: Column(
+            children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(
               DeskflowSpacing.lg,
@@ -71,6 +81,8 @@ class CustomersListScreen extends HookConsumerWidget {
 
           Expanded(
             child: customersAsync.when(
+              skipLoadingOnRefresh: true,
+              skipLoadingOnReload: true,
               data: (paginated) {
                 final customers = paginated.items;
                 if (customers.isEmpty) {
@@ -137,6 +149,8 @@ class CustomersListScreen extends HookConsumerWidget {
           ),
         ],
       ),
+        ),
+      ),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(
           bottom: FloatingIslandNav.totalHeight(context) + 16,
@@ -161,76 +175,91 @@ class _CustomerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassCard(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(DeskflowSpacing.lg),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: DeskflowColors.primary,
-                borderRadius: BorderRadius.circular(DeskflowRadius.md),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                customer.initials,
-                style: DeskflowTypography.body.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-            const SizedBox(width: DeskflowSpacing.md),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    customer.name,
-                    style: DeskflowTypography.body,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: Key('customer-row-${customer.id}'),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(DeskflowRadius.md),
+        child: Ink(
+          decoration: BoxDecoration(
+            color: DeskflowColors.workSurface,
+            borderRadius: BorderRadius.circular(DeskflowRadius.md),
+            border: Border.all(color: DeskflowColors.workBorder),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(DeskflowSpacing.md),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: DeskflowColors.workSurfaceElevated,
+                    borderRadius: BorderRadius.circular(DeskflowRadius.md),
                   ),
-                  if (customer.phone != null) ...[
-                    const SizedBox(height: DeskflowSpacing.xs),
-                    Text(
-                      customer.phone!,
-                      style: DeskflowTypography.bodySmall,
+                  alignment: Alignment.center,
+                  child: Text(
+                    customer.initials,
+                    style: DeskflowTypography.body.copyWith(
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
-                ],
-              ),
-            ),
-
-            if (customer.orderCount > 0) ...[
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: DeskflowSpacing.sm,
-                  vertical: DeskflowSpacing.xs,
-                ),
-                decoration: BoxDecoration(
-                  color: DeskflowColors.glassSurface,
-                  borderRadius: BorderRadius.circular(DeskflowRadius.pill),
-                ),
-                child: Text(
-                  '${customer.orderCount} зак.',
-                  style: DeskflowTypography.caption.copyWith(
-                    color: DeskflowColors.textSecondary,
                   ),
                 ),
-              ),
-            ],
-
-            const SizedBox(width: DeskflowSpacing.xs),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: DeskflowColors.textTertiary,
-              size: 20,
+                const SizedBox(width: DeskflowSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        customer.name,
+                        style: DeskflowTypography.body,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (customer.phone != null || customer.email != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          customer.phone ?? customer.email ?? '',
+                          style: DeskflowTypography.bodySmall.copyWith(
+                            color: DeskflowColors.workMutedText,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                if (customer.orderCount > 0) ...[
+                  const SizedBox(width: DeskflowSpacing.sm),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DeskflowSpacing.sm,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: DeskflowColors.workSurfaceElevated,
+                      borderRadius: BorderRadius.circular(DeskflowRadius.pill),
+                      border: Border.all(color: DeskflowColors.workBorder),
+                    ),
+                    child: Text(
+                      '${customer.orderCount} заказа',
+                      style: DeskflowTypography.caption.copyWith(
+                        color: DeskflowColors.workMutedText,
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(width: DeskflowSpacing.xs),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: DeskflowColors.textTertiary,
+                  size: 20,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -242,12 +271,14 @@ class _CustomersLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkeletonLoader(
-      child: ListView.separated(
-        padding: const EdgeInsets.all(DeskflowSpacing.lg),
-        itemCount: 8,
-        separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
-        itemBuilder: (_, _) => SkeletonLoader.box(height: 76),
+    return SkeletonGroup(
+      child: SkeletonLoader(
+        child: ListView.separated(
+          padding: const EdgeInsets.all(DeskflowSpacing.lg),
+          itemCount: 8,
+          separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
+          itemBuilder: (_, _) => SkeletonLoader.box(height: 76),
+        ),
       ),
     );
   }

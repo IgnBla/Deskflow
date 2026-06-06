@@ -13,6 +13,10 @@ part 'org_providers.g.dart';
 
 final _log = AppLogger.getLogger('OrgProviders');
 
+/// Holds the pre-loaded org ID from SharedPreferences (set in main.dart).
+/// Defaults to `null` if no saved org exists.
+final initialOrgIdProvider = Provider<String?>((_) => null);
+
 @Riverpod(keepAlive: true)
 OrgRepository orgRepository(Ref ref) {
   return OrgRepository(ref.watch(supabaseClientProvider));
@@ -22,30 +26,22 @@ OrgRepository orgRepository(Ref ref) {
 Future<List<Organization>> userOrganizations(Ref ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return [];
-  return ref.watch(orgRepositoryProvider).getUserOrganizations(user.id);
+  return ref.read(orgRepositoryProvider).getUserOrganizations(user.id);
 }
 
 @Riverpod(keepAlive: true)
 class CurrentOrgId extends _$CurrentOrgId {
-  static const _prefsKey = 'last_selected_org_id';
+  /// SharedPreferences key — exposed for main.dart pre-warming.
+  static const prefsKey = 'last_selected_org_id';
 
   @override
   String? build() {
-    _restoreFromPrefs();
-    return null;
-  }
-
-  Future<void> _restoreFromPrefs() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedOrgId = prefs.getString(_prefsKey);
-      if (savedOrgId != null && state == null) {
-        _log.d('[FIX] CurrentOrgId: restored org=$savedOrgId from SharedPreferences');
-        state = savedOrgId;
-      }
-    } catch (e) {
-      _log.d('[FIX] CurrentOrgId: could not restore org (non-critical): $e');
+    // Read the pre-loaded value synchronously (set in main.dart via override)
+    final initial = ref.read(initialOrgIdProvider);
+    if (initial != null) {
+      _log.d('[FIX] CurrentOrgId: using pre-loaded org=$initial');
     }
+    return initial;
   }
 
   void select(String orgId) {
@@ -61,7 +57,7 @@ class CurrentOrgId extends _$CurrentOrgId {
   Future<void> _persistToPrefs(String orgId) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_prefsKey, orgId);
+      await prefs.setString(prefsKey, orgId);
       _log.d('[FIX] CurrentOrgId: persisted org=$orgId');
     } catch (e) {
       _log.d('[FIX] CurrentOrgId: could not persist org (non-critical): $e');
@@ -71,7 +67,7 @@ class CurrentOrgId extends _$CurrentOrgId {
   Future<void> _clearPrefs() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_prefsKey);
+      await prefs.remove(prefsKey);
       _log.d('[FIX] CurrentOrgId: cleared persisted org');
     } catch (e) {
       _log.d('[FIX] CurrentOrgId: could not clear org (non-critical): $e');
@@ -86,7 +82,7 @@ Future<OrgRole> currentUserRole(Ref ref) async {
   if (user == null || orgId == null) {
     return OrgRole.member; // Default fallback
   }
-  return ref.watch(orgRepositoryProvider).getRole(user.id, orgId);
+  return ref.read(orgRepositoryProvider).getRole(user.id, orgId);
 }
 
 @riverpod

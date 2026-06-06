@@ -5,10 +5,10 @@ import 'package:deskflow/core/theme/deskflow_theme.dart';
 import 'package:deskflow/core/utils/app_logger.dart';
 import 'package:deskflow/core/widgets/error_state_widget.dart';
 import 'package:deskflow/core/widgets/floating_island_nav.dart';
-import 'package:deskflow/core/widgets/glass_card.dart';
 import 'package:deskflow/core/widgets/glass_floating_action_button.dart';
 import 'package:deskflow/core/widgets/skeleton_loader.dart';
 import 'package:deskflow/core/widgets/status_pill_badge.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
 import 'package:deskflow/features/admin/domain/admin_providers.dart';
 import 'package:deskflow/features/admin/presentation/edit_status_sheet.dart';
 import 'package:deskflow/features/orders/domain/order_status.dart';
@@ -22,8 +22,7 @@ class PipelineConfigScreen extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pipelineAsync = ref.watch(adminPipelineProvider);
 
-    return Scaffold(
-      backgroundColor: DeskflowColors.background,
+    return WorkScreenScaffold(
       appBar: AppBar(
         title: const Text('Настройка статусов'),
       ),
@@ -36,7 +35,8 @@ class PipelineConfigScreen extends HookConsumerWidget {
           onPressed: () => _showEditSheet(context, ref, null),
         ),
       ),
-      body: pipelineAsync.when(
+      body: pipelineAsync.when(        skipLoadingOnRefresh: true,
+        skipLoadingOnReload: true,
         data: (statuses) {
           if (statuses.isEmpty) {
             return const Center(
@@ -194,85 +194,94 @@ class _StatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: DeskflowSpacing.sm),
-      child: GlassCard(
-        child: Row(
-          children: [
-            const Icon(
-              Icons.drag_handle_rounded,
-              color: DeskflowColors.textTertiary,
-              size: 20,
-            ),
-            const SizedBox(width: DeskflowSpacing.md),
-
-            Container(
-              width: 14,
-              height: 14,
-              decoration: BoxDecoration(
-                color: status.materialColor,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: DeskflowSpacing.md),
-
-            Expanded(
-              child: Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      status.name,
-                      style: DeskflowTypography.body.copyWith(
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  if (status.isDefault) ...[
-                    const SizedBox(width: DeskflowSpacing.sm),
-                    const StatusPillBadge(
-                      label: 'По умолчанию',
-                      color: DeskflowColors.primarySolid,
-                    ),
-                  ],
-                  if (status.isFinal) ...[
-                    const SizedBox(width: DeskflowSpacing.sm),
-                    const StatusPillBadge(
-                      label: 'Финальный',
-                      color: DeskflowColors.successSolid,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            PopupMenuButton<String>(
-              icon: Icon(
-                Icons.more_vert_rounded,
-                color: DeskflowColors.textSecondary,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: DeskflowColors.workSurface,
+          borderRadius: BorderRadius.circular(DeskflowRadius.md),
+          border: Border.all(color: DeskflowColors.workBorder),
+        ),
+        child: Padding(
+          key: Key('pipeline-status-row-${status.id}'),
+          padding: const EdgeInsets.symmetric(
+            horizontal: DeskflowSpacing.md,
+            vertical: DeskflowSpacing.md,
+          ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.drag_handle_rounded,
+                color: DeskflowColors.textTertiary,
                 size: 20,
               ),
-              color: DeskflowColors.glassSurface,
-              onSelected: (value) {
-                if (value == 'edit') onEdit();
-                if (value == 'delete') onDelete();
-              },
-              itemBuilder: (_) => [
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Text('Редактировать'),
+              const SizedBox(width: DeskflowSpacing.md),
+              Container(
+                width: 12,
+                height: 12,
+                decoration: BoxDecoration(
+                  color: status.materialColor,
+                  shape: BoxShape.circle,
                 ),
-                PopupMenuItem(
-                  value: 'delete',
-                  child: Text(
-                    'Удалить',
-                    style: TextStyle(
-                      color: DeskflowColors.destructiveSolid,
+              ),
+              const SizedBox(width: DeskflowSpacing.md),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        status.name,
+                        style: DeskflowTypography.body.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (status.isDefault) ...[
+                      const SizedBox(width: DeskflowSpacing.sm),
+                      const StatusPillBadge(
+                        label: 'По умолчанию',
+                        color: DeskflowColors.primarySolid,
+                      ),
+                    ],
+                    if (status.isFinal) ...[
+                      const SizedBox(width: DeskflowSpacing.sm),
+                      const StatusPillBadge(
+                        label: 'Финальный',
+                        color: DeskflowColors.successSolid,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              PopupMenuButton<String>(
+                icon: Icon(
+                  Icons.more_vert_rounded,
+                  color: DeskflowColors.textSecondary,
+                  size: 20,
+                ),
+                color: DeskflowColors.workSurfaceElevated,
+                onSelected: (value) {
+                  if (value == 'edit') onEdit();
+                  if (value == 'delete') onDelete();
+                },
+                itemBuilder: (_) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: Text('Редактировать'),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(
+                      'Удалить',
+                      style: TextStyle(
+                        color: DeskflowColors.destructiveSolid,
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -284,12 +293,14 @@ class _PipelineLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkeletonLoader(
-      child: ListView.separated(
-        padding: const EdgeInsets.all(DeskflowSpacing.lg),
-        itemCount: 5,
-        separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
-        itemBuilder: (_, _) => SkeletonLoader.box(height: 64),
+    return SkeletonGroup(
+      child: SkeletonLoader(
+        child: ListView.separated(
+          padding: const EdgeInsets.all(DeskflowSpacing.lg),
+          itemCount: 5,
+          separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
+          itemBuilder: (_, _) => SkeletonLoader.box(height: 64),
+        ),
       ),
     );
   }

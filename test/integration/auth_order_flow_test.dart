@@ -234,7 +234,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Новый заказ'), findsOneWidget);
-      expect(find.text('Сохранить'), findsOneWidget);
+      expect(find.text('Сохранить заказ'), findsOneWidget);
     });
 
     testWidgets('submits order via notifier', (tester) async {
@@ -244,7 +244,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('Сохранить'));
+      await tester.tap(find.text('Сохранить заказ'));
       await tester.pumpAndSettle();
 
       expect(fakeNotifier.createOrderCallCount, 1);
