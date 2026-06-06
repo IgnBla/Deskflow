@@ -213,9 +213,3 @@ Backend-часть проекта построена на Supabase:
 - Realtime для чатов и live-обновлений
 - Storage для вложений и изображений
 - SQL migrations в `supabase/migrations`
-
-## Repository Notes
-
-- основной репозиторий: `https://github.com/SilaVoin/DeskflowPrj.git`
-- локальные секреты и runtime-конфиги не должны попадать в git
-- скриншоты для README лежат в `assets/readme/`
