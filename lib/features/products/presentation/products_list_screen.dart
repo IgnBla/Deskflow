@@ -1,9 +1,11 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 import 'package:deskflow/core/theme/deskflow_theme.dart';
+import 'package:deskflow/core/utils/use_debounced_value.dart';
 import 'package:deskflow/core/widgets/glass_card.dart';
 import 'package:deskflow/core/widgets/glass_floating_action_button.dart';
 import 'package:deskflow/core/widgets/pill_search_bar.dart';
@@ -20,10 +22,13 @@ class ProductsListScreen extends HookConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final searchQuery = useState('');
+    final debouncedQuery = useDebouncedValue(searchQuery.value);
     final scrollController = useScrollController();
+    final searchRef = useRef(debouncedQuery);
+    searchRef.value = debouncedQuery;
     final productsAsync = ref.watch(
       productsListProvider(
-        search: searchQuery.value.isEmpty ? null : searchQuery.value,
+        search: debouncedQuery.isEmpty ? null : debouncedQuery,
       ),
     );
 
@@ -33,9 +38,10 @@ class ProductsListScreen extends HookConsumerWidget {
         final maxScroll = scrollController.position.maxScrollExtent;
         final currentScroll = scrollController.position.pixels;
         if (currentScroll >= maxScroll - 200) {
+          final q = searchRef.value;
           ref
               .read(productsListProvider(
-                search: searchQuery.value.isEmpty ? null : searchQuery.value,
+                search: q.isEmpty ? null : q,
               ).notifier)
               .loadMore();
         }
@@ -43,7 +49,7 @@ class ProductsListScreen extends HookConsumerWidget {
 
       scrollController.addListener(onScroll);
       return () => scrollController.removeListener(onScroll);
-    }, [scrollController, searchQuery.value]);
+    }, [scrollController]);
 
     return Scaffold(
       backgroundColor: DeskflowColors.background,
@@ -73,6 +79,8 @@ class ProductsListScreen extends HookConsumerWidget {
 
           Expanded(
             child: productsAsync.when(
+              skipLoadingOnRefresh: true,
+              skipLoadingOnReload: true,
               data: (paginated) {
                 final products = paginated.items;
                 if (products.isEmpty) {
@@ -165,6 +173,7 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassCard(
+      enableBlur: false,
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.all(DeskflowSpacing.lg),
@@ -179,7 +188,7 @@ class _ProductCard extends StatelessWidget {
                 border: Border.all(color: DeskflowColors.glassBorder),
                 image: product.imageUrl != null
                     ? DecorationImage(
-                        image: NetworkImage(product.imageUrl!),
+                        image: CachedNetworkImageProvider(product.imageUrl!),
                         fit: BoxFit.cover,
                       )
                     : null,
@@ -262,12 +271,14 @@ class _ProductsLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkeletonLoader(
-      child: ListView.separated(
-        padding: const EdgeInsets.all(DeskflowSpacing.lg),
-        itemCount: 8,
-        separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
-        itemBuilder: (_, _) => SkeletonLoader.box(height: 80),
+    return SkeletonGroup(
+      child: SkeletonLoader(
+        child: ListView.separated(
+          padding: const EdgeInsets.all(DeskflowSpacing.lg),
+          itemCount: 8,
+          separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
+          itemBuilder: (_, _) => SkeletonLoader.box(height: 80),
+        ),
       ),
     );
   }

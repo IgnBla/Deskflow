@@ -35,7 +35,8 @@ class CustomerDetailScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: customerAsync.when(
+      body: customerAsync.when(        skipLoadingOnRefresh: true,
+        skipLoadingOnReload: true,
         data: (customer) => _CustomerContent(
           customer: customer,
           ordersAsync: ordersAsync,
@@ -347,7 +348,8 @@ class _OrdersSection extends StatelessWidget {
       children: [
         Text('Заказы', style: DeskflowTypography.h3),
         const SizedBox(height: DeskflowSpacing.md),
-        ordersAsync.when(
+        ordersAsync.when(          skipLoadingOnRefresh: true,
+          skipLoadingOnReload: true,
           data: (orders) {
             if (orders.isEmpty) {
               return const EmptyStateWidget(
@@ -434,8 +436,9 @@ class _CustomerDetailSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkeletonLoader(
-      child: ListView(
+    return SkeletonGroup(
+      child: SkeletonLoader(
+        child: ListView(
         padding: const EdgeInsets.all(DeskflowSpacing.lg),
         children: [
           Center(child: SkeletonLoader.box(width: 72, height: 72, borderRadius: 20)),
@@ -454,6 +457,7 @@ class _CustomerDetailSkeleton extends StatelessWidget {
           const SizedBox(height: DeskflowSpacing.lg),
           SkeletonLoader.box(height: 200),
         ],
+      ),
       ),
     );
   }

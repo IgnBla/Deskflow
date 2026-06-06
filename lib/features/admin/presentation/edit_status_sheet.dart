@@ -100,7 +100,7 @@ class EditStatusSheet extends HookConsumerWidget {
         DeskflowSpacing.lg,
         DeskflowSpacing.md,
         DeskflowSpacing.lg,
-        MediaQuery.of(context).viewInsets.bottom + DeskflowSpacing.lg,
+        MediaQuery.viewInsetsOf(context).bottom + DeskflowSpacing.lg,
       ),
       child: Form(
         key: formKey,
@@ -130,6 +130,8 @@ class EditStatusSheet extends HookConsumerWidget {
               label: 'Название',
               hint: 'Например: В работе',
               controller: nameController,
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => save(),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) {
                   return 'Введите название';

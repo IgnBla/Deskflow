@@ -33,6 +33,8 @@ class StatusPillBadge extends StatelessWidget {
       child: Text(
         label,
         style: DeskflowTypography.badge.copyWith(color: tint),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

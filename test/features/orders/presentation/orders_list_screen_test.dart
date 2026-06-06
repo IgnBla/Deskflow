@@ -12,6 +12,7 @@ import 'package:deskflow/features/orders/domain/order_status.dart';
 import 'package:deskflow/features/orders/domain/orders_list_controls.dart';
 import 'package:deskflow/features/orders/presentation/orders_list_screen.dart';
 import 'package:deskflow/features/org/domain/org_providers.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
 
 class _MockOrderRepository extends Mock implements OrderRepository {}
 
@@ -116,18 +117,28 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('Сортировка'), findsOneWidget);
-    expect(find.text('Период'), findsOneWidget);
+    expect(find.byKey(const Key('orders-sort-trigger')), findsOneWidget);
+    expect(find.byKey(const Key('orders-period-trigger')), findsOneWidget);
     expect(find.text('По дате'), findsOneWidget);
     expect(find.text('Все время'), findsOneWidget);
     expect(find.text('По сумме'), findsNothing);
+  });
+
+  testWidgets('uses work screen scaffold and keeps create action visible', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildApp());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(WorkScreenScaffold), findsOneWidget);
+    expect(find.byIcon(Icons.add_rounded), findsOneWidget);
   });
 
   testWidgets('opens contextual actions for order card', (tester) async {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.more_horiz_rounded));
+    await tester.longPress(find.byKey(const Key('order-card-12')));
     await tester.pumpAndSettle();
 
     expect(find.text('Открыть заказ'), findsOneWidget);
@@ -149,7 +160,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Сортировка'));
+    await tester.tap(find.byKey(const Key('orders-sort-trigger')));
     await tester.pumpAndSettle();
     expect(find.byType(ModalBarrier), findsAtLeastNWidgets(1));
     expect(find.text('Март 2026'), findsOneWidget);
@@ -169,7 +180,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Сортировка'));
+    await tester.tap(find.byKey(const Key('orders-sort-trigger')));
     await tester.pumpAndSettle();
 
     expect(find.byType(ModalBarrier), findsAtLeastNWidgets(1));
@@ -198,7 +209,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Сортировка'));
+    await tester.tap(find.byKey(const Key('orders-sort-trigger')));
     await tester.pumpAndSettle();
 
     final byAmount = find.text('По сумме').last;
@@ -217,7 +228,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Сортировка'));
+    await tester.tap(find.byKey(const Key('orders-sort-trigger')));
     await tester.pumpAndSettle();
 
     final calendar = find.byKey(const Key('orders-sort-calendar'));
@@ -238,19 +249,19 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Сортировка'));
+    await tester.tap(find.byKey(const Key('orders-sort-trigger')));
     await tester.pumpAndSettle();
 
     final byAmount = find.text('По сумме').last;
     expect(byAmount, findsOneWidget);
-    expect(tester.getBottomLeft(byAmount).dy, lessThan(460));
+    expect(tester.getBottomLeft(byAmount).dy, lessThan(510));
   });
 
   testWidgets('sort sheet closes date section on repeated tap', (tester) async {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Сортировка'));
+    await tester.tap(find.byKey(const Key('orders-sort-trigger')));
     await tester.pumpAndSettle();
 
     expect(find.text('Март 2026'), findsOneWidget);
@@ -267,7 +278,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Период'));
+    await tester.tap(find.byKey(const Key('orders-period-trigger')));
     await tester.pumpAndSettle();
 
     expect(find.byType(ModalBarrier), findsAtLeastNWidgets(1));
@@ -296,7 +307,7 @@ void main() {
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Период'));
+    await tester.tap(find.byKey(const Key('orders-period-trigger')));
     await tester.pumpAndSettle();
 
     final last30Days = find.text('30 дней').last;

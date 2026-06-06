@@ -23,7 +23,7 @@ class CustomersList extends _$CustomersList {
   Future<PaginatedList<Customer>> build({String? search}) async {
     final orgId = ref.watch(currentOrgIdProvider);
     if (orgId == null) return const PaginatedList(items: [], hasMore: false);
-    final items = await ref.watch(customerRepositoryProvider).getCustomers(
+    final items = await ref.read(customerRepositoryProvider).getCustomers(
           orgId: orgId,
           search: search,
           limit: _pageSize,
@@ -64,10 +64,10 @@ class CustomersList extends _$CustomersList {
 
 @riverpod
 Future<Customer> customerDetail(Ref ref, String customerId) async {
-  return ref.watch(customerRepositoryProvider).getCustomer(customerId);
+  return ref.read(customerRepositoryProvider).getCustomer(customerId);
 }
 
 @riverpod
 Future<List<Order>> customerOrders(Ref ref, String customerId) async {
-  return ref.watch(customerRepositoryProvider).getCustomerOrders(customerId);
+  return ref.read(customerRepositoryProvider).getCustomerOrders(customerId);
 }

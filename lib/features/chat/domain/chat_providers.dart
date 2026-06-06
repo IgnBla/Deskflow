@@ -14,12 +14,12 @@ ChatRepository chatRepository(Ref ref) {
 
 @riverpod
 Future<List<ChatMessage>> chatMessages(Ref ref, String orderId) async {
-  return ref.watch(chatRepositoryProvider).getMessages(orderId: orderId);
+  return ref.read(chatRepositoryProvider).getMessages(orderId: orderId);
 }
 
 @riverpod
 Future<List<ChatMessage>> chatPreview(Ref ref, String orderId) async {
-  return ref.watch(chatRepositoryProvider).getLatestMessages(
+  return ref.read(chatRepositoryProvider).getLatestMessages(
         orderId: orderId,
         count: 3,
       );
@@ -27,5 +27,5 @@ Future<List<ChatMessage>> chatPreview(Ref ref, String orderId) async {
 
 @riverpod
 Future<int> chatMessageCount(Ref ref, String orderId) async {
-  return ref.watch(chatRepositoryProvider).getMessageCount(orderId);
+  return ref.read(chatRepositoryProvider).getMessageCount(orderId);
 }

@@ -7,16 +7,19 @@ import 'package:deskflow/core/errors/deskflow_exception.dart';
 import 'package:deskflow/core/theme/deskflow_theme.dart';
 import 'package:deskflow/core/utils/app_logger.dart';
 import 'package:deskflow/core/utils/currency_formatter.dart';
+import 'package:deskflow/core/utils/text_input_formatters.dart';
 import 'package:deskflow/core/widgets/glass_card.dart';
-import 'package:deskflow/core/widgets/glass_chip.dart';
 import 'package:deskflow/core/widgets/glass_text_field.dart';
-import 'package:deskflow/core/widgets/pill_button.dart';
+import 'package:deskflow/core/widgets/surface_card.dart';
+import 'package:deskflow/core/widgets/work_primary_action_bar.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
 import 'package:deskflow/features/customers/domain/customer_providers.dart';
 import 'package:deskflow/features/orders/domain/customer.dart';
 import 'package:deskflow/features/orders/domain/order_composition.dart';
 import 'package:deskflow/features/orders/domain/order_notifier.dart';
 import 'package:deskflow/features/orders/domain/order_providers.dart';
 import 'package:deskflow/features/orders/domain/order_template.dart';
+import 'package:deskflow/features/orders/presentation/order_quick_sources_panel.dart';
 import 'package:deskflow/features/products/domain/product.dart';
 import 'package:deskflow/features/products/domain/product_providers.dart';
 
@@ -59,7 +62,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       _items.fold(0, (sum, item) => sum + item.unitPrice * item.quantity);
 
   double get _deliveryCost =>
-      double.tryParse(_deliveryCostController.text) ?? 0;
+      parseFormattedNumber(_deliveryCostController.text) ?? 0;
 
   double get _grandTotal => _itemsTotal + _deliveryCost;
 
@@ -284,6 +287,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     final templatesAsync = ref.watch(orderTemplatesProvider);
     final recentCustomersAsync = ref.watch(recentOrderCustomersProvider);
     final recentProductsAsync = ref.watch(recentOrderProductsProvider);
+    final bp = DeskflowBreakpoints.of(context);
 
     ref.listen<AsyncValue<void>>(orderNotifierProvider, (_, next) {
       if (next.hasError) {
@@ -300,330 +304,351 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: DeskflowColors.background,
+    return WorkScreenScaffold(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
           onPressed: () => context.pop(),
         ),
         title: const Text('Новый заказ'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: DeskflowSpacing.md),
-            child: PillButton(
-              label: 'Сохранить',
-              isLoading: isLoading,
-              onPressed: isLoading ? null : _handleCreate,
-            ),
-          ),
-        ],
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(DeskflowSpacing.lg),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Клиент', style: DeskflowTypography.h3),
-              const SizedBox(height: DeskflowSpacing.sm),
-              GestureDetector(
-                onTap: _selectedCustomer == null ? _showCustomerPicker : null,
-                child: GlassCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (_selectedCustomer != null) ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _selectedCustomer!.name,
-                                    style: DeskflowTypography.body,
-                                  ),
-                                  if (_selectedCustomer!.phone != null)
-                                    Text(
-                                      _selectedCustomer!.phone!,
-                                      style: DeskflowTypography.bodySmall,
-                                    ),
-                                ],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close_rounded, size: 18),
-                              onPressed: () =>
-                                  setState(() => _selectedCustomer = null),
-                            ),
-                          ],
-                        ),
-                      ] else ...[
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.person_add_rounded,
-                              size: 18,
-                              color: DeskflowColors.textTertiary,
-                            ),
-                            const SizedBox(width: DeskflowSpacing.sm),
-                            Text(
-                              'Выбрать клиента (необязательно)',
-                              style: DeskflowTypography.bodySmall.copyWith(
-                                color: DeskflowColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ],
+      bottomActionBar: WorkPrimaryActionBar(
+        key: const Key('create-order-action-bar'),
+        summary: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: _deliveryCostController,
+          builder: (context, value, _) {
+            final deliveryCost = parseFormattedNumber(value.text) ?? 0;
+            final grandTotal = _itemsTotal + deliveryCost;
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'Итого',
+                  style: DeskflowTypography.caption.copyWith(
+                    color: DeskflowColors.workMutedText,
                   ),
                 ),
-              ),
-
-              const SizedBox(height: DeskflowSpacing.xl),
-
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Товары', style: DeskflowTypography.h3),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
+                const SizedBox(height: DeskflowSpacing.xs),
+                Text(
+                  CurrencyFormatter.formatCompact(grandTotal),
+                  style: DeskflowTypography.h3,
+                ),
+              ],
+            );
+          },
+        ),
+        label: 'Сохранить заказ',
+        onPressed: isLoading ? null : _handleCreate,
+        isLoading: isLoading,
+      ),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: bp.isExpanded
+                ? 1180
+                : (bp.maxContentWidth ?? double.infinity),
+          ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(
+              horizontal: bp.horizontalPadding,
+              vertical: DeskflowSpacing.lg,
+            ),
+            child: bp.isExpanded
+                ? Row(
+                    key: const Key('create-order-desktop-layout'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_items.isNotEmpty)
-                        TextButton(
-                          onPressed: _showSaveTemplateDialog,
-                          child: const Text('Сохранить как шаблон'),
+                      Expanded(
+                        flex: 7,
+                        child: Column(
+                          key: const Key('create-order-main-column'),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildCustomerSection(),
+                            const SizedBox(height: DeskflowSpacing.xl),
+                            _buildProductsHeader(),
+                            const SizedBox(height: DeskflowSpacing.sm),
+                            _buildItemsSection(),
+                            const SizedBox(height: DeskflowSpacing.xxl),
+                          ],
                         ),
-                      TextButton.icon(
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const Text('Добавить'),
-                        onPressed: _addProductFromCatalog,
+                      ),
+                      const SizedBox(width: DeskflowSpacing.xl),
+                      Expanded(
+                        flex: 5,
+                        child: Column(
+                          key: const Key('create-order-side-column'),
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            OrderQuickSourcesPanel(
+                              templatesAsync: templatesAsync,
+                              recentCustomersAsync: recentCustomersAsync,
+                              recentProductsAsync: recentProductsAsync,
+                              onTemplateTap: _applyTemplate,
+                              onCustomerTap: (customer) {
+                                setState(() => _selectedCustomer = customer);
+                              },
+                              onProductTap: _addRecentProduct,
+                            ),
+                            const SizedBox(height: DeskflowSpacing.xl),
+                            _buildDeliverySection(),
+                            const SizedBox(height: DeskflowSpacing.xl),
+                            _buildNotesSection(),
+                            const SizedBox(height: DeskflowSpacing.xxl),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildCustomerSection(),
+                      const SizedBox(height: DeskflowSpacing.xl),
+                      _buildProductsHeader(),
+                      const SizedBox(height: DeskflowSpacing.sm),
+                      OrderQuickSourcesPanel(
+                        templatesAsync: templatesAsync,
+                        recentCustomersAsync: recentCustomersAsync,
+                        recentProductsAsync: recentProductsAsync,
+                        onTemplateTap: _applyTemplate,
+                        onCustomerTap: (customer) {
+                          setState(() => _selectedCustomer = customer);
+                        },
+                        onProductTap: _addRecentProduct,
+                      ),
+                      const SizedBox(height: DeskflowSpacing.md),
+                      _buildItemsSection(),
+                      const SizedBox(height: DeskflowSpacing.xl),
+                      _buildDeliverySection(),
+                      const SizedBox(height: DeskflowSpacing.xl),
+                      _buildNotesSection(),
+                      const SizedBox(height: DeskflowSpacing.xl),
+                      _buildSummarySection(),
+                      const SizedBox(height: DeskflowSpacing.xxl),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCustomerSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Клиент', style: DeskflowTypography.h3),
+        const SizedBox(height: DeskflowSpacing.sm),
+        GestureDetector(
+          onTap: _selectedCustomer == null ? _showCustomerPicker : null,
+          child: GlassCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_selectedCustomer != null) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _selectedCustomer!.name,
+                              style: DeskflowTypography.body,
+                            ),
+                            if (_selectedCustomer!.phone != null)
+                              Text(
+                                _selectedCustomer!.phone!,
+                                style: DeskflowTypography.bodySmall,
+                              ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        onPressed: () => setState(() => _selectedCustomer = null),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.person_add_rounded,
+                        size: 18,
+                        color: DeskflowColors.textTertiary,
+                      ),
+                      const SizedBox(width: DeskflowSpacing.sm),
+                      Flexible(
+                        child: Text(
+                          'Выбрать клиента (необязательно)',
+                          style: DeskflowTypography.bodySmall.copyWith(
+                            color: DeskflowColors.textSecondary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
                       ),
                     ],
                   ),
                 ],
-              ),
-              const SizedBox(height: DeskflowSpacing.sm),
-              _QuickSourcesCard(
-                templatesAsync: templatesAsync,
-                recentCustomersAsync: recentCustomersAsync,
-                recentProductsAsync: recentProductsAsync,
-                onTemplateTap: _applyTemplate,
-                onCustomerTap: (customer) {
-                  setState(() => _selectedCustomer = customer);
-                },
-                onProductTap: _addRecentProduct,
-              ),
-              const SizedBox(height: DeskflowSpacing.md),
-              if (_items.isEmpty)
-                GlassCard(
-                  child: Center(
-                    child: Text(
-                      'Нет товаров',
-                      style: DeskflowTypography.bodySmall,
-                    ),
-                  ),
-                )
-              else
-                ...List.generate(_items.length, (i) {
-                  final item = _items[i];
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: DeskflowSpacing.sm),
-                    child: GlassCard(
-                      padding: const EdgeInsets.all(DeskflowSpacing.md),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  item.productName,
-                                  style: DeskflowTypography.body,
-                                ),
-                                Text(
-                                  '${item.quantity} × ${CurrencyFormatter.formatCompact(item.unitPrice)} = ${CurrencyFormatter.formatCompact(item.unitPrice * item.quantity)}',
-                                  style: DeskflowTypography.bodySmall,
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              size: 18,
-                              color: DeskflowColors.destructiveSolid,
-                            ),
-                            onPressed: () => setState(() => _items.removeAt(i)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-
-              const SizedBox(height: DeskflowSpacing.xl),
-
-              const Text('Доставка', style: DeskflowTypography.h3),
-              const SizedBox(height: DeskflowSpacing.sm),
-              GlassCard(
-                child: GlassTextField(
-                  label: 'Стоимость доставки (₽)',
-                  controller: _deliveryCostController,
-                  keyboardType: TextInputType.number,
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-
-              const SizedBox(height: DeskflowSpacing.xl),
-
-              const Text('Заметки', style: DeskflowTypography.h3),
-              const SizedBox(height: DeskflowSpacing.sm),
-              GlassCard(
-                child: GlassTextField(
-                  label: 'Заметки к заказу',
-                  hint: 'Необязательно',
-                  controller: _notesController,
-                  maxLines: 3,
-                ),
-              ),
-
-              const SizedBox(height: DeskflowSpacing.xl),
-
-              GlassCard(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Итого', style: DeskflowTypography.h2),
-                    Text(
-                      CurrencyFormatter.formatCompact(_grandTotal),
-                      style: DeskflowTypography.h2,
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: DeskflowSpacing.xxl),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _QuickSourcesCard extends StatelessWidget {
-  const _QuickSourcesCard({
-    required this.templatesAsync,
-    required this.recentCustomersAsync,
-    required this.recentProductsAsync,
-    required this.onTemplateTap,
-    required this.onCustomerTap,
-    required this.onProductTap,
-  });
-
-  final AsyncValue<List<OrderTemplate>> templatesAsync;
-  final AsyncValue<List<Customer>> recentCustomersAsync;
-  final AsyncValue<List<Product>> recentProductsAsync;
-  final ValueChanged<OrderTemplate> onTemplateTap;
-  final ValueChanged<Customer> onCustomerTap;
-  final ValueChanged<Product> onProductTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassCard(
-      elevated: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Быстрые источники', style: DeskflowTypography.h3),
-          const SizedBox(height: DeskflowSpacing.md),
-          _QuickSourceGroup<OrderTemplate>(
-            title: 'Шаблоны',
-            itemsAsync: templatesAsync,
-            labelBuilder: (template) => template.name,
-            onTap: onTemplateTap,
-          ),
-          const SizedBox(height: DeskflowSpacing.md),
-          _QuickSourceGroup<Customer>(
-            title: 'Последние клиенты',
-            itemsAsync: recentCustomersAsync,
-            labelBuilder: (customer) => customer.name,
-            onTap: onCustomerTap,
-          ),
-          const SizedBox(height: DeskflowSpacing.md),
-          _QuickSourceGroup<Product>(
-            title: 'Последние товары',
-            itemsAsync: recentProductsAsync,
-            labelBuilder: (product) => product.name,
-            onTap: onProductTap,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuickSourceGroup<T> extends StatelessWidget {
-  const _QuickSourceGroup({
-    required this.title,
-    required this.itemsAsync,
-    required this.labelBuilder,
-    required this.onTap,
-  });
-
-  final String title;
-  final AsyncValue<List<T>> itemsAsync;
-  final String Function(T item) labelBuilder;
-  final ValueChanged<T> onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: DeskflowTypography.bodySmall.copyWith(
-            color: DeskflowColors.textSecondary,
-          ),
-        ),
-        const SizedBox(height: DeskflowSpacing.sm),
-        itemsAsync.when(
-          data: (items) {
-            if (items.isEmpty) {
-              return Text(
-                'Пока пусто',
-                style: DeskflowTypography.bodySmall.copyWith(
-                  color: DeskflowColors.textTertiary,
-                ),
-              );
-            }
-
-            return Wrap(
-              spacing: DeskflowSpacing.sm,
-              runSpacing: DeskflowSpacing.sm,
-              children: items
-                  .map(
-                    (item) => GlassChip(
-                      label: labelBuilder(item),
-                      onTap: () => onTap(item),
-                    ),
-                  )
-                  .toList(),
-            );
-          },
-          loading: () => const LinearProgressIndicator(minHeight: 2),
-          error: (error, stackTrace) => Text(
-            'Не удалось загрузить',
-            style: DeskflowTypography.bodySmall.copyWith(
-              color: DeskflowColors.textTertiary,
+              ],
             ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildProductsHeader() {
+    return Wrap(
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: DeskflowSpacing.sm,
+      runSpacing: DeskflowSpacing.xs,
+      children: [
+        const Text('Товары', style: DeskflowTypography.h3),
+        if (_items.isNotEmpty)
+          TextButton(
+            onPressed: _showSaveTemplateDialog,
+            style: TextButton.styleFrom(
+              padding: const EdgeInsets.symmetric(
+                horizontal: DeskflowSpacing.sm,
+              ),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              minimumSize: Size.zero,
+            ),
+            child: Text(
+              'Шаблон',
+              style: DeskflowTypography.bodySmall.copyWith(
+                color: DeskflowColors.primarySolid,
+              ),
+            ),
+          ),
+        TextButton.icon(
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('Добавить'),
+          onPressed: _addProductFromCatalog,
+          style: TextButton.styleFrom(
+            padding: const EdgeInsets.symmetric(
+              horizontal: DeskflowSpacing.sm,
+            ),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            minimumSize: Size.zero,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildItemsSection() {
+    if (_items.isEmpty) {
+      return SurfaceCard(
+        variant: SurfaceCardVariant.flat,
+        child: Center(
+          child: Text(
+            'Нет товаров',
+            style: DeskflowTypography.bodySmall,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: List.generate(_items.length, (i) {
+        final item = _items[i];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: DeskflowSpacing.sm),
+          child: GlassCard(
+            padding: const EdgeInsets.all(DeskflowSpacing.md),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.productName,
+                        style: DeskflowTypography.body,
+                      ),
+                      Text(
+                        '${item.quantity} × ${CurrencyFormatter.formatCompact(item.unitPrice)} = ${CurrencyFormatter.formatCompact(item.unitPrice * item.quantity)}',
+                        style: DeskflowTypography.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: DeskflowColors.destructiveSolid,
+                  ),
+                  onPressed: () => setState(() => _items.removeAt(i)),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildDeliverySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Доставка', style: DeskflowTypography.h3),
+        const SizedBox(height: DeskflowSpacing.sm),
+        GlassCard(
+          child: GlassTextField(
+            label: 'Стоимость доставки (₽)',
+            controller: _deliveryCostController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.next,
+            inputFormatters: [
+              GroupedNumberTextInputFormatter(allowDecimal: true),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNotesSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Заметки', style: DeskflowTypography.h3),
+        const SizedBox(height: DeskflowSpacing.sm),
+        GlassCard(
+          child: GlassTextField(
+            label: 'Заметки к заказу',
+            hint: 'Необязательно',
+            controller: _notesController,
+            textInputAction: TextInputAction.done,
+            maxLines: 3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSummarySection() {
+    return GlassCard(
+      key: const Key('create-order-inline-summary'),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('Итого', style: DeskflowTypography.h2),
+          Text(
+            CurrencyFormatter.formatCompact(_grandTotal),
+            style: DeskflowTypography.h2,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -666,8 +691,8 @@ class _ManualItemDialogState extends State<_ManualItemDialog> {
 
   void _submit() {
     final name = _nameCtrl.text.trim();
-    final price = double.tryParse(_priceCtrl.text) ?? 0;
-    final qty = int.tryParse(_qtyCtrl.text) ?? 1;
+    final price = parseFormattedNumber(_priceCtrl.text) ?? 0;
+    final qty = parseFormattedInt(_qtyCtrl.text) ?? 1;
     if (name.isNotEmpty && price > 0) {
       widget.onAdd(name, price, qty);
     }
@@ -690,8 +715,11 @@ class _ManualItemDialogState extends State<_ManualItemDialog> {
           GlassTextField(
             label: 'Цена',
             controller: _priceCtrl,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             textInputAction: TextInputAction.next,
+            inputFormatters: [
+              GroupedNumberTextInputFormatter(allowDecimal: true),
+            ],
           ),
           const SizedBox(height: DeskflowSpacing.md),
           GlassTextField(
@@ -699,6 +727,7 @@ class _ManualItemDialogState extends State<_ManualItemDialog> {
             controller: _qtyCtrl,
             keyboardType: TextInputType.number,
             textInputAction: TextInputAction.done,
+            inputFormatters: [GroupedNumberTextInputFormatter()],
             onSubmitted: (_) => _submit(),
           ),
         ],
@@ -736,7 +765,7 @@ class _CatalogPickerSheet extends HookConsumerWidget {
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.75,
+        maxHeight: MediaQuery.sizeOf(context).height * 0.75,
       ),
       decoration: const BoxDecoration(
         color: DeskflowColors.background,
@@ -748,7 +777,7 @@ class _CatalogPickerSheet extends HookConsumerWidget {
         DeskflowSpacing.lg,
         DeskflowSpacing.md,
         DeskflowSpacing.lg,
-        MediaQuery.of(context).viewInsets.bottom + DeskflowSpacing.lg,
+        MediaQuery.viewInsetsOf(context).bottom + DeskflowSpacing.lg,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -815,7 +844,8 @@ class _CatalogPickerSheet extends HookConsumerWidget {
           const SizedBox(height: DeskflowSpacing.md),
 
           Expanded(
-            child: productsAsync.when(
+            child: productsAsync.when(              skipLoadingOnRefresh: true,
+              skipLoadingOnReload: true,
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(
                 child: Text(
@@ -963,7 +993,7 @@ class _CustomerPickerSheet extends HookConsumerWidget {
 
     return Container(
       constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.75,
+        maxHeight: MediaQuery.sizeOf(context).height * 0.75,
       ),
       decoration: const BoxDecoration(
         color: DeskflowColors.background,
@@ -975,7 +1005,7 @@ class _CustomerPickerSheet extends HookConsumerWidget {
         DeskflowSpacing.lg,
         DeskflowSpacing.md,
         DeskflowSpacing.lg,
-        MediaQuery.of(context).viewInsets.bottom + DeskflowSpacing.lg,
+        MediaQuery.viewInsetsOf(context).bottom + DeskflowSpacing.lg,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1021,7 +1051,8 @@ class _CustomerPickerSheet extends HookConsumerWidget {
           const SizedBox(height: DeskflowSpacing.md),
 
           Expanded(
-            child: customersAsync.when(
+            child: customersAsync.when(              skipLoadingOnRefresh: true,
+              skipLoadingOnReload: true,
               loading: () => const Center(
                 child: CircularProgressIndicator(
                   color: DeskflowColors.primarySolid,

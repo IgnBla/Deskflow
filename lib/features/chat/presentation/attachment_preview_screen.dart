@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -90,23 +91,16 @@ class _ImagePreview extends StatelessWidget {
       child: InteractiveViewer(
         minScale: 0.5,
         maxScale: 4.0,
-        child: Image.network(
-          url,
+        child: CachedNetworkImage(
+          imageUrl: url,
           fit: BoxFit.contain,
-          loadingBuilder: (_, child, progress) {
-            if (progress == null) return child;
-            final percent = progress.expectedTotalBytes != null
-                ? progress.cumulativeBytesLoaded /
-                    progress.expectedTotalBytes!
-                : null;
-            return Center(
-              child: CircularProgressIndicator(
-                value: percent,
-                color: DeskflowColors.primarySolid,
-              ),
-            );
-          },
-          errorBuilder: (_, error, stackTrace) => Column(
+          progressIndicatorBuilder: (_, _, progress) => Center(
+            child: CircularProgressIndicator(
+              value: progress.progress,
+              color: DeskflowColors.primarySolid,
+            ),
+          ),
+          errorWidget: (_, _, _) => Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Icon(

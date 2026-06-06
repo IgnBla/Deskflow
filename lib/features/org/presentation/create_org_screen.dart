@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:deskflow/core/errors/deskflow_exception.dart';
 import 'package:deskflow/core/theme/deskflow_theme.dart';
 import 'package:deskflow/core/utils/app_logger.dart';
+import 'package:deskflow/core/widgets/auth_onboarding_shell.dart';
 import 'package:deskflow/core/widgets/glass_card.dart';
 import 'package:deskflow/core/widgets/glass_text_field.dart';
 import 'package:deskflow/core/widgets/pill_button.dart';
@@ -98,8 +99,7 @@ class _CreateOrgScreenState extends ConsumerState<CreateOrgScreen> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: DeskflowColors.background,
+    return AuthOnboardingShell(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -107,12 +107,9 @@ class _CreateOrgScreenState extends ConsumerState<CreateOrgScreen> {
         ),
         title: const Text('Создать организацию'),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(DeskflowSpacing.xl),
-          child: Form(
-            key: _formKey,
-            child: Column(
+      child: Form(
+        key: _formKey,
+        child: Column(
               children: [
                 GlassCard(
                   child: Column(
@@ -122,6 +119,7 @@ class _CreateOrgScreenState extends ConsumerState<CreateOrgScreen> {
                         hint: 'Введите название',
                         controller: _nameController,
                         textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _handleCreate(),
                         validator: (value) {
                           if (value == null || value.trim().length < 2) {
                             return 'Минимум 2 символа';
@@ -178,8 +176,6 @@ class _CreateOrgScreenState extends ConsumerState<CreateOrgScreen> {
                 ),
               ],
             ),
-          ),
-        ),
       ),
     );
   }

@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:deskflow/core/errors/deskflow_exception.dart';
 import 'package:deskflow/core/theme/deskflow_theme.dart';
 import 'package:deskflow/core/utils/app_logger.dart';
+import 'package:deskflow/core/widgets/auth_onboarding_shell.dart';
 import 'package:deskflow/core/widgets/glass_card.dart';
 import 'package:deskflow/core/widgets/glass_text_field.dart';
 import 'package:deskflow/core/widgets/pill_button.dart';
@@ -128,8 +129,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       }
     });
 
-    return Scaffold(
-      backgroundColor: DeskflowColors.background,
+    return AuthOnboardingShell(
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_rounded),
@@ -144,12 +144,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           },
         ),
       ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(DeskflowSpacing.xl),
-          child: Form(
-            key: _formKey,
-            child: Column(
+      child: SingleChildScrollView(
+        child: Form(
+          key: _formKey,
+          child: Column(
               children: [
                 GestureDetector(
                   onTap: _pickAvatar,
@@ -257,6 +255,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         controller: _confirmPasswordController,
                         obscureText: true,
                         textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _handleRegister(),
                         validator: (value) {
                           if (value != _passwordController.text) {
                             return 'Пароли не совпадают';
@@ -297,7 +296,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
               ],
             ),
-          ),
         ),
       ),
     );

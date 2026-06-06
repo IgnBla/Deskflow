@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:deskflow/core/theme/deskflow_theme.dart';
 
@@ -20,9 +21,53 @@ class GlassTextField extends StatelessWidget {
     this.errorText,
     this.suffixIcon,
     this.prefixIcon,
+    this.inputFormatters,
     this.enabled = true,
     this.autofocus = false,
   });
+
+  // ── Cached borders (avoid re-allocation on every build) ──
+  static final _borderRadius = BorderRadius.circular(DeskflowRadius.md);
+
+  static final _defaultBorder = OutlineInputBorder(
+    borderRadius: _borderRadius,
+    borderSide: const BorderSide(
+      color: DeskflowColors.glassBorder,
+      width: 0.5,
+    ),
+  );
+
+  static final _focusedBorder = OutlineInputBorder(
+    borderRadius: _borderRadius,
+    borderSide: const BorderSide(
+      color: DeskflowColors.primarySolid,
+      width: 1,
+    ),
+  );
+
+  static final _focusedErrorBorder = OutlineInputBorder(
+    borderRadius: _borderRadius,
+    borderSide: const BorderSide(
+      color: DeskflowColors.destructiveSolid,
+      width: 1,
+    ),
+  );
+
+  static final _errorBorder = OutlineInputBorder(
+    borderRadius: _borderRadius,
+    borderSide: const BorderSide(
+      color: DeskflowColors.destructiveSolid,
+      width: 1,
+    ),
+  );
+
+  static final _disabledBorder = OutlineInputBorder(
+    borderRadius: _borderRadius,
+    borderSide: BorderSide(
+      color: DeskflowColors.glassBorder.withValues(alpha: 0.3),
+      width: 0.5,
+    ),
+  );
 
   final String? label;
   final String? hint;
@@ -39,6 +84,7 @@ class GlassTextField extends StatelessWidget {
   final String? errorText;
   final Widget? suffixIcon;
   final Widget? prefixIcon;
+  final List<TextInputFormatter>? inputFormatters;
   final bool enabled;
   final bool autofocus;
 
@@ -60,9 +106,13 @@ class GlassTextField extends StatelessWidget {
           minLines: minLines,
           enabled: enabled,
           autofocus: autofocus,
+          inputFormatters: inputFormatters,
           validator: validator,
           onChanged: onChanged,
-          onFieldSubmitted: onSubmitted,
+          onFieldSubmitted: onSubmitted ??
+              (textInputAction == TextInputAction.next
+                  ? (_) => FocusScope.of(context).nextFocus()
+                  : null),
           style: DeskflowTypography.body,
           cursorColor: DeskflowColors.primarySolid,
           decoration: InputDecoration(
@@ -86,50 +136,12 @@ class GlassTextField extends StatelessWidget {
               horizontal: DeskflowSpacing.lg,
               vertical: DeskflowSpacing.md,
             ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(DeskflowRadius.md),
-              borderSide: const BorderSide(
-                color: DeskflowColors.glassBorder,
-                width: 0.5,
-              ),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(DeskflowRadius.md),
-              borderSide: const BorderSide(
-                color: DeskflowColors.glassBorder,
-                width: 0.5,
-              ),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(DeskflowRadius.md),
-              borderSide: BorderSide(
-                color: hasError
-                    ? DeskflowColors.destructiveSolid
-                    : DeskflowColors.primarySolid,
-                width: 1,
-              ),
-            ),
-            errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(DeskflowRadius.md),
-              borderSide: const BorderSide(
-                color: DeskflowColors.destructiveSolid,
-                width: 1,
-              ),
-            ),
-            focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(DeskflowRadius.md),
-              borderSide: const BorderSide(
-                color: DeskflowColors.destructiveSolid,
-                width: 1,
-              ),
-            ),
-            disabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(DeskflowRadius.md),
-              borderSide: BorderSide(
-                color: DeskflowColors.glassBorder.withValues(alpha: 0.3),
-                width: 0.5,
-              ),
-            ),
+            border: _defaultBorder,
+            enabledBorder: _defaultBorder,
+            focusedBorder: hasError ? _focusedErrorBorder : _focusedBorder,
+            errorBorder: _errorBorder,
+            focusedErrorBorder: _focusedErrorBorder,
+            disabledBorder: _disabledBorder,
           ),
         ),
       ],

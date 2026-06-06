@@ -104,6 +104,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _handleReset(),
                   validator: (value) {
                     if (value == null || !value.contains('@')) {
                       return 'Введите корректный email';

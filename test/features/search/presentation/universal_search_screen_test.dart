@@ -20,6 +20,8 @@ import 'package:deskflow/features/search/data/search_history_repository.dart';
 import 'package:deskflow/features/search/domain/search_history_entry.dart';
 import 'package:deskflow/features/search/domain/search_providers.dart';
 import 'package:deskflow/features/search/presentation/universal_search_screen.dart';
+import 'package:deskflow/core/widgets/glass_card.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
 
 class _MockOrderRepository extends Mock implements OrderRepository {}
 
@@ -173,6 +175,51 @@ void main() {
       ),
     ).thenAnswer((_) async => []);
     when(
+      () => orderRepository.searchOrders(
+        orgId: 'org-1',
+        query: 'Иванов',
+        statusId: any(named: 'statusId'),
+      ),
+    ).thenAnswer((_) async => [
+      Order(
+        id: order.id,
+        organizationId: order.organizationId,
+        statusId: order.statusId,
+        orderNumber: order.orderNumber,
+        totalAmount: order.totalAmount,
+        createdBy: order.createdBy,
+        createdAt: order.createdAt,
+        updatedAt: order.updatedAt,
+        status: statuses.first,
+        customerName: customer.name,
+      ),
+    ]);
+    when(
+      () => customerRepository.getCustomers(
+        orgId: 'org-1',
+        search: 'Иванов',
+        limit: any(named: 'limit'),
+      ),
+    ).thenAnswer((_) async => [
+      Customer(
+        id: customer.id,
+        organizationId: customer.organizationId,
+        name: customer.name,
+        phone: '+7 999 123-45-67',
+        createdAt: customer.createdAt,
+        orderCount: 3,
+      ),
+    ]);
+    when(
+      () => productRepository.getProducts(
+        orgId: 'org-1',
+        search: 'Иванов',
+        limit: any(named: 'limit'),
+      ),
+    ).thenAnswer((_) async => [
+      product.copyWith(sku: 'SKU-17'),
+    ]);
+    when(
       () => searchHistoryRepository.listRecent(userId: 'user-1'),
     ).thenAnswer((_) async => [historyEntry, ...extraHistory]);
     when(
@@ -325,6 +372,23 @@ void main() {
     expect(find.text('Новый'), findsOneWidget);
     expect(find.text('Доставка'), findsOneWidget);
   });
+
+  testWidgets(
+    'search results use work shell and compact rows instead of glass cards',
+    (tester) async {
+      await tester.pumpWidget(buildSubject());
+      await tester.pumpAndSettle();
+
+      expect(find.byType(WorkScreenScaffold), findsOneWidget);
+
+      await enterQuery(tester, 'Иванов');
+
+      expect(find.byKey(const Key('search-order-row-o1')), findsOneWidget);
+      expect(find.byKey(const Key('search-customer-row-c1')), findsOneWidget);
+      expect(find.byKey(const Key('search-product-row-p1')), findsOneWidget);
+      expect(find.byType(GlassCard), findsNothing);
+    },
+  );
 
   testWidgets(
     'typing alone does not save and no-results state appears until submit saves',

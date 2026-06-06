@@ -75,7 +75,7 @@ Future<List<SearchHistoryEntry>> searchHistory(Ref ref) async {
     return [];
   }
 
-  return ref.watch(searchHistoryRepositoryProvider).listRecent(userId: user.id);
+  return ref.read(searchHistoryRepositoryProvider).listRecent(userId: user.id);
 }
 
 @riverpod
@@ -93,9 +93,9 @@ Future<SearchResults> browseCategory(Ref ref) async {
       (value) => value.showsOrderStatusFilters ? value.orderStatusId : null,
     ),
   );
-  final orderRepo = ref.watch(orderRepositoryProvider);
-  final customerRepo = ref.watch(customerRepositoryProvider);
-  final productRepo = ref.watch(productRepositoryProvider);
+  final orderRepo = ref.read(orderRepositoryProvider);
+  final customerRepo = ref.read(customerRepositoryProvider);
+  final productRepo = ref.read(productRepositoryProvider);
 
   switch (filter) {
     case SearchFilter.all:
@@ -148,9 +148,9 @@ Future<SearchResults> universalSearch(Ref ref) async {
     return const SearchResults.empty();
   }
 
-  final orderRepo = ref.watch(orderRepositoryProvider);
-  final customerRepo = ref.watch(customerRepositoryProvider);
-  final productRepo = ref.watch(productRepositoryProvider);
+  final orderRepo = ref.read(orderRepositoryProvider);
+  final customerRepo = ref.read(customerRepositoryProvider);
+  final productRepo = ref.read(productRepositoryProvider);
   final query = controls.query;
 
   switch (controls.entityFilter) {

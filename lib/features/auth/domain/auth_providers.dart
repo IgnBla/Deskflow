@@ -20,7 +20,17 @@ Stream<AuthState> authStateChanges(Ref ref) {
 @Riverpod(keepAlive: true)
 User? currentUser(Ref ref) {
   final client = ref.watch(supabaseClientProvider);
-  ref.watch(authStateChangesProvider);
+
+  // Listen to auth changes but only rebuild on actual sign-in/sign-out,
+  // NOT on token refresh (~every 55 min) which would cascade rebuilds
+  // through the entire provider tree for no visible effect.
+  ref.listen<AsyncValue<AuthState>>(authStateChangesProvider, (prev, next) {
+    final event = next.valueOrNull?.event;
+    if (event != null && event != AuthChangeEvent.tokenRefreshed) {
+      ref.invalidateSelf();
+    }
+  });
+
   return client.auth.currentUser;
 }
 

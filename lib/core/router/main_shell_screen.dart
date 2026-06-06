@@ -49,8 +49,6 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final badgeCount = ref.watch(unreadNotificationCountProvider).valueOrNull ?? 0;
-
     return Scaffold(
       backgroundColor: DeskflowColors.background,
       body: Stack(
@@ -61,16 +59,35 @@ class _MainShellScreenState extends ConsumerState<MainShellScreen> {
         ],
       ),
       extendBody: true,
-      bottomNavigationBar: FloatingIslandNav(
-        currentIndex: widget.navigationShell.currentIndex,
-        notificationBadgeCount: badgeCount,
-        onTap: (index) {
-          widget.navigationShell.goBranch(
-            index,
-            initialLocation: index == widget.navigationShell.currentIndex,
-          );
-        },
+      bottomNavigationBar: _ShellBottomNav(
+        navigationShell: widget.navigationShell,
       ),
+    );
+  }
+}
+
+/// Extracted to its own [ConsumerWidget] so that only the nav bar
+/// rebuilds when the unread-notification count changes — not the
+/// entire shell (background, scaffold, child screens).
+class _ShellBottomNav extends ConsumerWidget {
+  const _ShellBottomNav({required this.navigationShell});
+
+  final StatefulNavigationShell navigationShell;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final badgeCount =
+        ref.watch(unreadNotificationCountProvider).valueOrNull ?? 0;
+
+    return FloatingIslandNav(
+      currentIndex: navigationShell.currentIndex,
+      notificationBadgeCount: badgeCount,
+      onTap: (index) {
+        navigationShell.goBranch(
+          index,
+          initialLocation: index == navigationShell.currentIndex,
+        );
+      },
     );
   }
 }

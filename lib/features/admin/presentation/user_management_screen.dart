@@ -37,7 +37,8 @@ class UserManagementScreen extends HookConsumerWidget {
         ),
       ),
       body: membersAsync.when(
-        skipLoadingOnRefresh: false,
+        skipLoadingOnRefresh: true,
+        skipLoadingOnReload: true,
         data: (members) {
           if (members.isEmpty) {
             return const Center(
@@ -245,6 +246,7 @@ class _MemberCard extends StatelessWidget {
     };
 
     return GlassCard(
+      enableBlur: false,
       child: Row(
         children: [
           Container(
@@ -348,12 +350,14 @@ class _MembersLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SkeletonLoader(
-      child: ListView.separated(
-        padding: const EdgeInsets.all(DeskflowSpacing.lg),
-        itemCount: 5,
-        separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
-        itemBuilder: (_, _) => SkeletonLoader.box(height: 72),
+    return SkeletonGroup(
+      child: SkeletonLoader(
+        child: ListView.separated(
+          padding: const EdgeInsets.all(DeskflowSpacing.lg),
+          itemCount: 5,
+          separatorBuilder: (_, _) => const SizedBox(height: DeskflowSpacing.sm),
+          itemBuilder: (_, _) => SkeletonLoader.box(height: 72),
+        ),
       ),
     );
   }

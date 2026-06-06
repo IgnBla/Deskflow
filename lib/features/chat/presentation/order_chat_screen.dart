@@ -1,6 +1,6 @@
-import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -119,7 +119,8 @@ class OrderChatScreen extends HookConsumerWidget {
       body: Column(
         children: [
           Expanded(
-            child: chatAsync.when(
+            child: chatAsync.when(              skipLoadingOnRefresh: true,
+              skipLoadingOnReload: true,
               loading: () => const _ChatLoadingSkeleton(),
               error: (error, _) => ErrorStateWidget(
                 message: error.toString(),
@@ -267,7 +268,7 @@ class OrderChatScreen extends HookConsumerWidget {
     bool animate = true,
   }) {
     if (!controller.hasClients) return;
-    Future.delayed(const Duration(milliseconds: 100), () {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!controller.hasClients) return;
       if (animate) {
         controller.animateTo(
@@ -415,7 +416,7 @@ class _ChatBubble extends StatelessWidget {
 
                 Container(
                   constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.75,
+                    maxWidth: MediaQuery.sizeOf(context).width * 0.75,
                   ),
                   decoration: BoxDecoration(
                     color: isMe
@@ -591,26 +592,23 @@ class _AttachmentWidget extends StatelessWidget {
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(DeskflowRadius.sm),
-          child: Image.network(
-            attachment.url,
+          child: CachedNetworkImage(
+            imageUrl: attachment.url,
             width: 200,
             height: 150,
             fit: BoxFit.cover,
-            loadingBuilder: (_, child, progress) {
-              if (progress == null) return child;
-              return Container(
-                width: 200,
-                height: 150,
-                color: DeskflowColors.glassSurface,
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: DeskflowColors.primarySolid,
-                  ),
+            placeholder: (_, _) => Container(
+              width: 200,
+              height: 150,
+              color: DeskflowColors.glassSurface,
+              child: const Center(
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: DeskflowColors.primarySolid,
                 ),
-              );
-            },
-            errorBuilder: (_, error, stackTrace) => Container(
+              ),
+            ),
+            errorWidget: (_, _, _) => Container(
               width: 200,
               height: 150,
               color: DeskflowColors.glassSurface,
@@ -1077,16 +1075,18 @@ class _ChatLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(DeskflowSpacing.lg),
-      child: Column(
+    return SkeletonGroup(
+      child: SkeletonLoader(
+        child: Padding(
+          padding: const EdgeInsets.all(DeskflowSpacing.lg),
+          child: Column(
         children: [
           const SizedBox(height: DeskflowSpacing.xl),
           Align(
             alignment: Alignment.centerLeft,
             child: SkeletonLoader.box(
               height: 60,
-              width: MediaQuery.of(context).size.width * 0.6,
+              width: MediaQuery.sizeOf(context).width * 0.6,
             ),
           ),
           const SizedBox(height: DeskflowSpacing.md),
@@ -1094,7 +1094,7 @@ class _ChatLoadingSkeleton extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: SkeletonLoader.box(
               height: 40,
-              width: MediaQuery.of(context).size.width * 0.5,
+              width: MediaQuery.sizeOf(context).width * 0.5,
             ),
           ),
           const SizedBox(height: DeskflowSpacing.md),
@@ -1102,7 +1102,7 @@ class _ChatLoadingSkeleton extends StatelessWidget {
             alignment: Alignment.centerLeft,
             child: SkeletonLoader.box(
               height: 80,
-              width: MediaQuery.of(context).size.width * 0.7,
+              width: MediaQuery.sizeOf(context).width * 0.7,
             ),
           ),
           const SizedBox(height: DeskflowSpacing.md),
@@ -1110,10 +1110,12 @@ class _ChatLoadingSkeleton extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: SkeletonLoader.box(
               height: 50,
-              width: MediaQuery.of(context).size.width * 0.4,
+              width: MediaQuery.sizeOf(context).width * 0.4,
             ),
           ),
         ],
+      ),
+    ),
       ),
     );
   }

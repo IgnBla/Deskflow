@@ -4,27 +4,34 @@ import 'package:go_router/go_router.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 import 'package:deskflow/core/theme/deskflow_theme.dart';
-import 'package:deskflow/core/widgets/glass_card.dart';
-import 'package:deskflow/core/widgets/glass_text_field.dart';
-import 'package:deskflow/core/widgets/pill_button.dart';
 import 'package:deskflow/core/utils/pluralize_ru.dart';
+import 'package:deskflow/core/widgets/glass_text_field.dart';
+import 'package:deskflow/core/widgets/surface_card.dart';
+import 'package:deskflow/core/widgets/work_primary_action_bar.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
 import 'package:deskflow/features/admin/domain/admin_providers.dart';
 import 'package:deskflow/features/org/domain/org_providers.dart';
 
 class OrgSettingsScreen extends HookConsumerWidget {
   const OrgSettingsScreen({super.key});
 
+  String _membersLabel(int count) {
+    return '$count ${pluralizeRu(count, 'участник', 'участника', 'участников')}';
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final orgsAsync = ref.watch(userOrganizationsProvider);
     final orgId = ref.watch(currentOrgIdProvider);
+    final membersAsync = ref.watch(orgMembersProvider);
     final nameController = useTextEditingController();
     final isLoading = useState(false);
     final initialized = useState(false);
+    final bp = DeskflowBreakpoints.of(context);
 
     orgsAsync.whenData((orgs) {
       if (!initialized.value) {
-        final org = orgs.where((o) => o.id == orgId).firstOrNull;
+        final org = orgs.where((item) => item.id == orgId).firstOrNull;
         if (org != null) {
           nameController.text = org.name;
           initialized.value = true;
@@ -66,8 +73,7 @@ class OrgSettingsScreen extends HookConsumerWidget {
         builder: (ctx) => AlertDialog(
           title: const Text('Удалить организацию'),
           content: const Text(
-            'Вы уверены? Это действие нельзя отменить. '
-            'Все данные организации будут удалены.',
+            'Вы уверены? Это действие нельзя отменить. Все данные организации будут удалены.',
           ),
           actions: [
             TextButton(
@@ -81,9 +87,7 @@ class OrgSettingsScreen extends HookConsumerWidget {
                   context: context,
                   builder: (ctx2) => AlertDialog(
                     title: const Text('Точно удалить?'),
-                    content: const Text(
-                      'Введите УДАЛИТЬ для подтверждения.',
-                    ),
+                    content: const Text('Введите УДАЛИТЬ для подтверждения.'),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.pop(ctx2, false),
@@ -92,8 +96,7 @@ class OrgSettingsScreen extends HookConsumerWidget {
                       TextButton(
                         onPressed: () => Navigator.pop(ctx2, true),
                         style: TextButton.styleFrom(
-                          foregroundColor:
-                              DeskflowColors.destructiveSolid,
+                          foregroundColor: DeskflowColors.destructiveSolid,
                         ),
                         child: const Text('Удалить навсегда'),
                       ),
@@ -103,9 +106,7 @@ class OrgSettingsScreen extends HookConsumerWidget {
                 if (confirmed != true || !context.mounted) return;
 
                 try {
-                  await ref
-                      .read(adminRepositoryProvider)
-                      .deleteOrganization(orgId!);
+                  await ref.read(adminRepositoryProvider).deleteOrganization(orgId!);
                   ref.read(currentOrgIdProvider.notifier).clear();
                   ref.invalidate(userOrganizationsProvider);
                   if (context.mounted) {
@@ -129,112 +130,231 @@ class OrgSettingsScreen extends HookConsumerWidget {
       );
     }
 
-    final membersAsync = ref.watch(orgMembersProvider);
-
-    return Scaffold(
-      backgroundColor: DeskflowColors.background,
-      appBar: AppBar(
-        title: const Text('Настройки организации'),
+    return WorkScreenScaffold(
+      appBar: AppBar(title: const Text('Настройки организации')),
+      bottomActionBar: WorkPrimaryActionBar(
+        summary: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: nameController,
+          builder: (context, value, _) {
+            final name = value.text.trim();
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Организация',
+                  style: DeskflowTypography.caption.copyWith(
+                    color: DeskflowColors.workMutedText,
+                  ),
+                ),
+                const SizedBox(height: DeskflowSpacing.xs),
+                Text(
+                  name.isEmpty ? 'Без названия' : name,
+                  style: DeskflowTypography.h3,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            );
+          },
+        ),
+        label: 'Сохранить',
+        onPressed: isLoading.value ? null : saveName,
+        isLoading: isLoading.value,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(DeskflowSpacing.lg),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            GlassCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Основное', style: DeskflowTypography.caption),
-                  const SizedBox(height: DeskflowSpacing.md),
-                  GlassTextField(
-                    label: 'Название организации',
-                    hint: 'Моя компания',
-                    controller: nameController,
-                  ),
-                  const SizedBox(height: DeskflowSpacing.lg),
-                  PillButton(
-                    label: 'Сохранить',
-                    onPressed: saveName,
-                    isLoading: isLoading.value,
-                  ),
-                ],
-              ),
+        padding: EdgeInsets.symmetric(
+          horizontal: bp.horizontalPadding,
+          vertical: DeskflowSpacing.lg,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth:
+                  bp.isExpanded ? 1120 : (bp.maxContentWidth ?? double.infinity),
             ),
-
-            const SizedBox(height: DeskflowSpacing.lg),
-
-            GlassCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Участники', style: DeskflowTypography.caption),
-                  const SizedBox(height: DeskflowSpacing.md),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: bp.isExpanded
+                ? Row(
+                    key: const Key('org-settings-desktop-layout'),
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      membersAsync.when(
-                        data: (members) => Text(
-                          pluralizeRu(members.length, 'участник', 'участника', 'участников'),
-                          style: DeskflowTypography.body,
-                        ),
-                        loading: () => const Text(
-                          'Загрузка...',
-                          style: DeskflowTypography.body,
-                        ),
-                        error: (_, _) => const Text(
-                          'Ошибка',
-                          style: DeskflowTypography.body,
+                      Expanded(
+                        flex: 7,
+                        child: Column(
+                          key: const Key('org-settings-main-column'),
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SurfaceCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Основное', style: DeskflowTypography.caption),
+                                  const SizedBox(height: DeskflowSpacing.md),
+                                  GlassTextField(
+                                    label: 'Название организации',
+                                    hint: 'Моя компания',
+                                    controller: nameController,
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: (_) => saveName(),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: DeskflowSpacing.lg),
+                            SurfaceCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Участники', style: DeskflowTypography.caption),
+                                  const SizedBox(height: DeskflowSpacing.md),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      membersAsync.when(
+                                        skipLoadingOnRefresh: true,
+                                        skipLoadingOnReload: true,
+                                        data: (members) => Text(
+                                          _membersLabel(members.length),
+                                          style: DeskflowTypography.body,
+                                        ),
+                                        loading: () => const Text('Загрузка...'),
+                                        error: (_, _) => const Text('Ошибка'),
+                                      ),
+                                      TextButton.icon(
+                                        icon: const Icon(Icons.people_rounded, size: 18),
+                                        label: const Text('Управление'),
+                                        onPressed: () => context.push('/admin/users'),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      TextButton.icon(
-                        icon: const Icon(Icons.people_rounded, size: 18),
-                        label: const Text('Управление'),
-                        onPressed: () => context.push('/admin/users'),
+                      const SizedBox(width: DeskflowSpacing.xl),
+                      Expanded(
+                        flex: 5,
+                        child: Column(
+                          key: const Key('org-settings-side-column'),
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            SurfaceCard(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Опасная зона',
+                                    style: DeskflowTypography.caption.copyWith(
+                                      color: DeskflowColors.destructiveSolid,
+                                    ),
+                                  ),
+                                  const SizedBox(height: DeskflowSpacing.md),
+                                  Text(
+                                    'Удаление организации сотрёт все связанные данные без возможности восстановления.',
+                                    style: DeskflowTypography.bodySmall.copyWith(
+                                      color: DeskflowColors.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: DeskflowSpacing.lg),
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: TextButton.icon(
+                                      icon: const Icon(Icons.delete_forever_rounded),
+                                      label: const Text('Удалить организацию'),
+                                      onPressed: showDeleteConfirmation,
+                                      style: TextButton.styleFrom(
+                                        foregroundColor:
+                                            DeskflowColors.destructiveSolid,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      SurfaceCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Основное', style: DeskflowTypography.caption),
+                            const SizedBox(height: DeskflowSpacing.md),
+                            GlassTextField(
+                              label: 'Название организации',
+                              hint: 'Моя компания',
+                              controller: nameController,
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: (_) => saveName(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: DeskflowSpacing.lg),
+                      SurfaceCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Участники', style: DeskflowTypography.caption),
+                            const SizedBox(height: DeskflowSpacing.md),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                membersAsync.when(
+                                  skipLoadingOnRefresh: true,
+                                  skipLoadingOnReload: true,
+                                  data: (members) => Text(
+                                    _membersLabel(members.length),
+                                    style: DeskflowTypography.body,
+                                  ),
+                                  loading: () => const Text('Загрузка...'),
+                                  error: (_, _) => const Text('Ошибка'),
+                                ),
+                                TextButton.icon(
+                                  icon: const Icon(Icons.people_rounded, size: 18),
+                                  label: const Text('Управление'),
+                                  onPressed: () => context.push('/admin/users'),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: DeskflowSpacing.lg),
+                      SurfaceCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Опасная зона',
+                              style: DeskflowTypography.caption.copyWith(
+                                color: DeskflowColors.destructiveSolid,
+                              ),
+                            ),
+                            const SizedBox(height: DeskflowSpacing.md),
+                            TextButton.icon(
+                              icon: const Icon(Icons.delete_forever_rounded),
+                              label: const Text('Удалить организацию'),
+                              onPressed: showDeleteConfirmation,
+                              style: TextButton.styleFrom(
+                                foregroundColor:
+                                    DeskflowColors.destructiveSolid,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: DeskflowSpacing.xxl),
-
-            Container(
-              decoration: BoxDecoration(
-                borderRadius:
-                    BorderRadius.circular(DeskflowRadius.lg),
-                border: Border.all(
-                  color: DeskflowColors.destructiveSolid
-                      .withValues(alpha: 0.3),
-                  width: 0.5,
-                ),
-              ),
-              child: GlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Опасная зона',
-                      style: DeskflowTypography.caption.copyWith(
-                        color: DeskflowColors.destructiveSolid,
-                      ),
-                    ),
-                    const SizedBox(height: DeskflowSpacing.md),
-                    TextButton.icon(
-                      icon: const Icon(Icons.delete_forever_rounded),
-                      label: const Text('Удалить организацию'),
-                      onPressed: showDeleteConfirmation,
-                      style: TextButton.styleFrom(
-                        foregroundColor:
-                            DeskflowColors.destructiveSolid,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

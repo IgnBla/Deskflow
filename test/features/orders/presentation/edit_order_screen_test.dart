@@ -11,6 +11,8 @@ import 'package:deskflow/features/orders/domain/order_item.dart';
 import 'package:deskflow/features/orders/presentation/edit_order_screen.dart';
 import 'package:deskflow/features/products/domain/product.dart';
 import 'package:deskflow/core/theme/deskflow_theme.dart';
+import 'package:deskflow/core/widgets/glass_chip.dart';
+import 'package:deskflow/core/widgets/work_screen_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -141,10 +143,44 @@ void main() {
     expect(find.text('Шаблоны'), findsOneWidget);
     expect(find.text('Последние клиенты'), findsOneWidget);
     expect(find.text('Последние товары'), findsOneWidget);
-    expect(find.text('Сохранить как шаблон'), findsOneWidget);
+    expect(find.text('Шаблон'), findsOneWidget);
     expect(find.text('Повторный заказ'), findsOneWidget);
     expect(find.text('Новый клиент'), findsOneWidget);
     expect(find.text('Виджет B'), findsOneWidget);
+  });
+
+  testWidgets('uses adaptive desktop layout and quiet quick sources on wide web', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      _buildSubject(
+        recentCustomers: [recentCustomer],
+        recentProducts: [recentProduct],
+        templates: [template],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('edit-order-desktop-layout')), findsOneWidget);
+    expect(find.byKey(const Key('edit-order-main-column')), findsOneWidget);
+    expect(find.byKey(const Key('edit-order-side-column')), findsOneWidget);
+    expect(find.byKey(const Key('quick-sources-panel')), findsOneWidget);
+    expect(find.byType(GlassChip), findsNothing);
+  });
+
+  testWidgets('uses work screen scaffold with sticky save action', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_buildSubject());
+    await tester.pumpAndSettle();
+
+    expect(find.byType(WorkScreenScaffold), findsOneWidget);
+    expect(find.text('Сохранить заказ'), findsOneWidget);
   });
 
   testWidgets('recent customer chip updates selected customer', (tester) async {
@@ -165,7 +201,7 @@ void main() {
     await tester.pumpWidget(_buildSubject(notifier: notifier));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Сохранить как шаблон'));
+    await tester.tap(find.text('Шаблон'));
     await tester.pumpAndSettle();
 
     expect(find.text('Новый шаблон'), findsOneWidget);
@@ -183,7 +219,7 @@ void main() {
     await tester.pumpWidget(_buildSubject());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Сохранить как шаблон'));
+    await tester.tap(find.text('Шаблон'));
     await tester.pumpAndSettle();
 
     final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
@@ -199,7 +235,8 @@ void main() {
     await tester.enterText(find.byType(TextField).last, 'Обновлённый комментарий');
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Повторный заказ'));
+    await tester.ensureVisible(find.byKey(const Key('quick-source-template-row-0')));
+    await tester.tap(find.byKey(const Key('quick-source-template-row-0')));
     await tester.pumpAndSettle();
 
     expect(find.text('Перейти к новому заказу?'), findsOneWidget);

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import 'package:deskflow/core/theme/deskflow_theme.dart';
@@ -74,73 +72,69 @@ class _PillSearchBarState extends State<PillSearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(DeskflowRadius.pill),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeInOut,
-          height: widget.height,
-          decoration: BoxDecoration(
+    return RepaintBoundary(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+        height: widget.height,
+        decoration: BoxDecoration(
+          color: _hasFocus
+              ? DeskflowColors.shellGlassSurfaceFocused
+              : DeskflowColors.shellGlassSurface,
+          borderRadius: BorderRadius.circular(DeskflowRadius.pill),
+          border: Border.all(
             color: _hasFocus
-                ? DeskflowColors.shellGlassSurfaceFocused
-                : DeskflowColors.shellGlassSurface,
-            borderRadius: BorderRadius.circular(DeskflowRadius.pill),
-            border: Border.all(
-              color: _hasFocus
-                  ? DeskflowColors.primarySolid.withValues(alpha: 0.4)
-                  : DeskflowColors.glassBorderStrong.withValues(alpha: 0.72),
-              width: 0.75,
-            ),
+                ? DeskflowColors.primarySolid.withValues(alpha: 0.4)
+                : DeskflowColors.glassBorderStrong.withValues(alpha: 0.72),
+            width: 0.75,
           ),
-          child: Row(
-            children: [
-              SizedBox(width: widget.horizontalPadding),
-              Icon(
-                Icons.search_rounded,
-                size: 20,
-                color: _hasFocus
-                    ? DeskflowColors.textSecondary
-                    : DeskflowColors.textTertiary,
-              ),
-              SizedBox(width: widget.gapAfterIcon),
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  autofocus: widget.autofocus,
-                  style: DeskflowTypography.body,
-                  cursorColor: DeskflowColors.primarySolid,
-                  decoration: InputDecoration(
-                    hintText: widget.hintText,
-                    hintStyle: DeskflowTypography.body.copyWith(
-                      color: DeskflowColors.textTertiary,
-                    ),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                  onSubmitted: widget.onSubmitted,
-                ),
-              ),
-              if (_hasText)
-                IconButton(
-                  onPressed: _clear,
-                  icon: const Icon(
-                    Icons.close_rounded,
-                    size: 18,
+        ),
+        child: Row(
+          children: [
+            SizedBox(width: widget.horizontalPadding),
+            Icon(
+              Icons.search_rounded,
+              size: 20,
+              color: _hasFocus
+                  ? DeskflowColors.textSecondary
+                  : DeskflowColors.textTertiary,
+            ),
+            SizedBox(width: widget.gapAfterIcon),
+            Expanded(
+              child: TextField(
+                controller: _controller,
+                focusNode: _focusNode,
+                autofocus: widget.autofocus,
+                style: DeskflowTypography.body,
+                cursorColor: DeskflowColors.primarySolid,
+                decoration: InputDecoration(
+                  hintText: widget.hintText,
+                  hintStyle: DeskflowTypography.body.copyWith(
                     color: DeskflowColors.textTertiary,
                   ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(
-                    minWidth: 32,
-                    minHeight: 32,
-                  ),
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onSubmitted: widget.onSubmitted,
               ),
-              SizedBox(width: widget.horizontalPadding * 0.5),
-            ],
-          ),
+            ),
+            if (_hasText)
+              IconButton(
+                onPressed: _clear,
+                icon: const Icon(
+                  Icons.close_rounded,
+                  size: 18,
+                  color: DeskflowColors.textTertiary,
+                ),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(
+                  minWidth: 32,
+                  minHeight: 32,
+                ),
+            ),
+            SizedBox(width: widget.horizontalPadding * 0.5),
+          ],
         ),
       ),
     );

@@ -18,6 +18,6 @@ void main() {
 
     expect(find.text('Deskflow'), findsOneWidget);
     expect(theme.brightness, Brightness.dark);
-    expect(theme.scaffoldBackgroundColor, DeskflowColors.background);
+    expect(theme.scaffoldBackgroundColor, DeskflowColors.backgroundBase);
   });
 }
