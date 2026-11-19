@@ -157,7 +157,8 @@ class OrderRepository {
     String? statusId,
   }) async {
     _log.d(
-      '[FIX] searchOrders: orgId=$orgId, query="$query", statusId=$statusId',
+      'searchOrders: orgId=$orgId, queryLength=${query.length}, '
+      'statusId=$statusId',
     );
     return supabaseGuard(() async {
       final normalizedQuery = query.trim();
@@ -178,11 +179,12 @@ class OrderRepository {
           .toList();
 
       _log.d(
-        '[FIX] searchOrders: orderNumber=$orderNumber, '
+        'searchOrders: orderNumberPresent=${orderNumber != null}, '
         'matchingCustomers=${customerIds.length}',
       );
 
-      final orParts = <String>['notes.ilike.%$normalizedQuery%'];
+      final escapedPattern = _escapePostgrestOrPattern(normalizedQuery);
+      final orParts = <String>['notes.ilike.$escapedPattern'];
 
       if (orderNumber != null) {
         orParts.add('order_number.eq.$orderNumber');
@@ -212,9 +214,25 @@ class OrderRepository {
           .map((e) => Order.fromJson(e as Map<String, dynamic>))
           .toList();
 
-      _log.d('[FIX] searchOrders: found ${results.length} orders');
+      _log.d('searchOrders: found ${results.length} orders');
       return results;
     });
+  }
+
+  /// Builds a quoted PostgREST `ilike` operand for an `or(...)` filter.
+  ///
+  /// Comma, dot, colon and parentheses are reserved by the PostgREST grammar
+  /// and are neutralized by putting the whole pattern in a quoted literal.
+  /// Quotes, backslashes and LIKE wildcards require explicit escaping.
+  String _escapePostgrestOrPattern(String value) {
+    final likeEscaped = value
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
+    final postgrestEscaped = likeEscaped
+        .replaceAll(r'\', r'\\')
+        .replaceAll('"', r'\"');
+    return '"%$postgrestEscaped%"';
   }
 
   Future<Order> getOrder(String orderId) async {
@@ -249,50 +267,22 @@ class OrderRepository {
             (item['unit_price'] as num).toDouble() * (item['quantity'] as int);
       }
       _log.d(
-        '[FIX] createOrder: items total=$total, deliveryCost=$deliveryCost (stored separately)',
+        'createOrder: items total=$total, deliveryCost=$deliveryCost '
+        '(stored separately)',
       );
 
-      final orderData = await _client
-          .from('orders')
-          .insert({
-            'organization_id': orgId,
-            'customer_id': customerId,
-            'status_id': statusId,
-            'total_amount': total,
-            'delivery_cost': deliveryCost,
-            'notes': notes,
-            'created_by': userId,
-          })
-          .select('*, order_statuses(*), customers(name)')
-          .single();
+      final orderId = await _client.rpc('create_order_with_items', params: {
+        'p_organization_id': orgId,
+        'p_customer_id': customerId,
+        'p_status_id': statusId,
+        'p_total_amount': total,
+        'p_delivery_cost': deliveryCost,
+        'p_notes': notes,
+        'p_created_by': userId,
+        'p_items': items,
+      }) as String;
 
-      final order = Order.fromJson(orderData);
-
-      if (items.isNotEmpty) {
-        final itemRows = items
-            .map(
-              (item) => {
-                'order_id': order.id,
-                'product_id': item['product_id'],
-                'product_name': item['product_name'],
-                'unit_price': item['unit_price'],
-                'quantity': item['quantity'],
-              },
-            )
-            .toList();
-        await _client.from('order_items').insert(itemRows);
-      }
-
-      await _insertAudit(
-        orgId: orgId,
-        entityType: 'order',
-        entityId: order.id,
-        action: 'order_created',
-        userId: userId,
-        newValue: {'order_number': order.orderNumber},
-      );
-
-      return order;
+      return getOrder(orderId);
     });
   }
 
@@ -531,7 +521,7 @@ class OrderRepository {
     }
 
     _log.d(
-      '[FIX] _recalculateTotal: items total=$total (delivery not included)',
+      '_recalculateTotal: items total=$total (delivery not included)',
     );
 
     await _client

@@ -349,6 +349,91 @@ void main() {
   });
 
 
+  group('createOrder', () {
+    test('uses atomic RPC and returns reloaded order', () async {
+      const rpcOrderId = 'ord-new';
+      final orderJson = {
+        'id': rpcOrderId,
+        'organization_id': 'org-1',
+        'customer_id': 'cust-1',
+        'status_id': 'st-1',
+        'order_number': 43,
+        'total_amount': 300.0,
+        'delivery_cost': 50.0,
+        'notes': 'RPC order',
+        'created_by': 'user-1',
+        'created_at': '2026-03-10T00:00:00.000',
+        'updated_at': '2026-03-10T00:00:00.000',
+        'order_statuses': {
+          'id': 'st-1',
+          'organization_id': 'org-1',
+          'name': 'Новый',
+          'color': '#3B82F6',
+          'sort_order': 0,
+          'is_default': true,
+          'is_final': false,
+        },
+        'customers': {'name': 'Иванов Иван'},
+        'order_items': <Map<String, dynamic>>[
+          {
+            'order_id': rpcOrderId,
+            'product_id': 'prod-1',
+            'product_name': 'Виджет',
+            'unit_price': 100.0,
+            'quantity': 2,
+          },
+        ],
+      };
+
+      const rpcParams = <String, dynamic>{
+        'p_organization_id': 'org-1',
+        'p_customer_id': 'cust-1',
+        'p_status_id': 'st-1',
+        'p_total_amount': 300.0,
+        'p_delivery_cost': 50.0,
+        'p_notes': 'RPC order',
+        'p_created_by': 'user-1',
+        'p_items': <Map<String, dynamic>>[
+          {
+            'product_id': 'prod-1',
+            'product_name': 'Виджет',
+            'unit_price': 100.0,
+            'quantity': 2,
+          },
+        ],
+      };
+
+      when(
+        () => mockClient.rpc('create_order_with_items', params: rpcParams),
+      ).thenAnswer((_) => FakeFilterBuilder<dynamic>(rpcOrderId));
+      when(
+        () => mockClient.from('orders'),
+      ).thenAnswer((_) => FakeQueryBuilder([orderJson]));
+
+      final order = await repo.createOrder(
+        orgId: 'org-1',
+        userId: 'user-1',
+        statusId: 'st-1',
+        customerId: 'cust-1',
+        deliveryCost: 50,
+        notes: 'RPC order',
+        items: const [
+          {
+            'product_id': 'prod-1',
+            'product_name': 'Виджет',
+            'unit_price': 100.0,
+            'quantity': 2,
+          },
+        ],
+      );
+
+      expect(order.id, rpcOrderId);
+      expect(order.orderNumber, 43);
+      expect(order.items, hasLength(1));
+    });
+  });
+
+
   group('searchOrders', () {
     test('returns matching orders', () async {
       final orderJson = {
@@ -410,6 +495,28 @@ void main() {
               invocation.positionalArguments[1] == 'st-1',
         ),
         true,
+      );
+    });
+
+    test('escapes reserved or-filter and LIKE characters', () async {
+      final ordersBuilder = RecordingQueryBuilder(<Map<String, dynamic>>[]);
+
+      when(
+        () => mockClient.from('customers'),
+      ).thenAnswer((_) => FakeQueryBuilder(<Map<String, dynamic>>[]));
+      when(() => mockClient.from('orders')).thenAnswer((_) => ordersBuilder);
+
+      await repo.searchOrders(
+        orgId: 'org-1',
+        query: r'a\b,(c).%_"',
+      );
+
+      final orInvocation = ordersBuilder.invocations.firstWhere(
+        (invocation) => invocation.memberName == #or,
+      );
+      expect(
+        orInvocation.positionalArguments.single,
+        r'notes.ilike."%a\\\\b,(c).\\%\\_\"%"',
       );
     });
   });
