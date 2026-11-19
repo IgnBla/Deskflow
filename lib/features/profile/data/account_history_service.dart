@@ -1,3 +1,4 @@
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:deskflow/core/utils/app_logger.dart';
@@ -10,12 +11,16 @@ class AccountHistoryService {
   static const int maxEmails = 5;
 
   final SharedPreferences _prefs;
+  final FlutterSecureStorage _secureStorage;
 
-  AccountHistoryService(this._prefs);
+  AccountHistoryService(
+    this._prefs, {
+    FlutterSecureStorage? secureStorage,
+  }) : _secureStorage = secureStorage ?? const FlutterSecureStorage();
 
   List<String> getRecentEmails() {
     final emails = _prefs.getStringList(_key) ?? [];
-    _log.d('getRecentEmails: count=${emails.length}, emails=$emails');
+    _log.d('getRecentEmails: count=${emails.length}');
     return emails;
   }
 
@@ -27,7 +32,7 @@ class AccountHistoryService {
     }
 
     final emails = getRecentEmails();
-    _log.d('addEmail: before — count=${emails.length}, adding=$normalized');
+    _log.d('addEmail: before — count=${emails.length}');
 
     emails.remove(normalized);
     emails.insert(0, normalized);
@@ -37,13 +42,13 @@ class AccountHistoryService {
     }
 
     await _prefs.setStringList(_key, emails);
-    _log.i('addEmail: after — count=${emails.length}, list=$emails');
+    _log.i('addEmail: after — count=${emails.length}');
   }
 
   Future<void> removeEmail(String email) async {
     final normalized = email.trim().toLowerCase();
     final emails = getRecentEmails();
-    _log.d('removeEmail: before — count=${emails.length}, removing=$normalized');
+    _log.d('removeEmail: before — count=${emails.length}');
 
     emails.remove(normalized);
     await _prefs.setStringList(_key, emails);
@@ -54,20 +59,20 @@ class AccountHistoryService {
   Future<void> saveRefreshToken(String email, String refreshToken) async {
     final normalized = email.trim().toLowerCase();
     if (normalized.isEmpty || refreshToken.isEmpty) {
-      _log.d('[FIX] saveRefreshToken: skipped — empty email or token');
+      _log.d('saveRefreshToken: skipped — empty email or token');
       return;
     }
     final key = '$_tokenKeyPrefix$normalized';
-    await _prefs.setString(key, refreshToken);
-    _log.i('[FIX] saveRefreshToken: saved token for $normalized');
+    await _secureStorage.write(key: key, value: refreshToken);
+    _log.i('saveRefreshToken: stored refresh token securely');
   }
 
-  String? getRefreshToken(String email) {
+  Future<String?> getRefreshToken(String email) async {
     final normalized = email.trim().toLowerCase();
     if (normalized.isEmpty) return null;
     final key = '$_tokenKeyPrefix$normalized';
-    final token = _prefs.getString(key);
-    _log.d('[FIX] getRefreshToken: email=$normalized, hasToken=${token != null}');
+    final token = await _secureStorage.read(key: key);
+    _log.d('getRefreshToken: tokenPresent=${token != null}');
     return token;
   }
 
@@ -75,8 +80,8 @@ class AccountHistoryService {
     final normalized = email.trim().toLowerCase();
     if (normalized.isEmpty) return;
     final key = '$_tokenKeyPrefix$normalized';
-    await _prefs.remove(key);
-    _log.d('[FIX] removeRefreshToken: removed token for $normalized');
+    await _secureStorage.delete(key: key);
+    _log.d('removeRefreshToken: token removed');
   }
 
   Future<void> clear() async {

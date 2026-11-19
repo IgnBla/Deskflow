@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -35,7 +36,10 @@ AccountHistoryService accountHistoryService(Ref ref) {
     throw StateError('SharedPreferences not yet initialized');
   }
   _log.i('accountHistoryService: created with SharedPreferences');
-  return AccountHistoryService(prefs);
+  return AccountHistoryService(
+    prefs,
+    secureStorage: const FlutterSecureStorage(),
+  );
 }
 
 @Riverpod(keepAlive: true)
@@ -54,7 +58,7 @@ class RecentEmailsNotifier extends _$RecentEmailsNotifier {
   }
 
   Future<void> addEmail(String email) async {
-    _log.d('RecentEmailsNotifier.addEmail: email=$email');
+    _log.d('RecentEmailsNotifier.addEmail: requested');
     try {
       final prefs = await SharedPreferences.getInstance();
       final service = AccountHistoryService(prefs);
@@ -67,7 +71,7 @@ class RecentEmailsNotifier extends _$RecentEmailsNotifier {
   }
 
   Future<void> removeEmail(String email) async {
-    _log.d('RecentEmailsNotifier.removeEmail: email=$email');
+    _log.d('RecentEmailsNotifier.removeEmail: requested');
     try {
       final prefs = await SharedPreferences.getInstance();
       final service = AccountHistoryService(prefs);
@@ -81,24 +85,26 @@ class RecentEmailsNotifier extends _$RecentEmailsNotifier {
   }
 
   Future<void> saveRefreshToken(String email, String refreshToken) async {
-    _log.d('[FIX] saveRefreshToken: email=$email');
+    _log.d('RecentEmailsNotifier.saveRefreshToken: requested');
     try {
       final prefs = await SharedPreferences.getInstance();
       final service = AccountHistoryService(prefs);
       await service.saveRefreshToken(email, refreshToken);
-      _log.i('[FIX] saveRefreshToken: done');
+      _log.i('RecentEmailsNotifier.saveRefreshToken: done');
     } catch (e, st) {
-      _log.e('[FIX] saveRefreshToken: failed', error: e, stackTrace: st);
+      _log.e('RecentEmailsNotifier.saveRefreshToken: failed', error: e, stackTrace: st);
     }
   }
 
-  String? getRefreshToken(String email) {
-    _log.d('[FIX] getRefreshToken: email=$email');
+  Future<String?> getRefreshToken(String email) async {
+    _log.d('RecentEmailsNotifier.getRefreshToken: requested');
     try {
       final service = ref.read(accountHistoryServiceProvider);
-      return service.getRefreshToken(email);
+      final token = await service.getRefreshToken(email);
+      _log.d('RecentEmailsNotifier.getRefreshToken: tokenPresent=${token != null}');
+      return token;
     } catch (e, st) {
-      _log.e('[FIX] getRefreshToken: failed', error: e, stackTrace: st);
+      _log.e('RecentEmailsNotifier.getRefreshToken: failed', error: e, stackTrace: st);
       return null;
     }
   }
@@ -118,7 +124,7 @@ Stream<void> authTokenRefreshWatcher(Ref ref) {
       final newToken = session.refreshToken;
 
       if (email != null && newToken != null) {
-        _log.i('[FIX] authTokenRefreshWatcher: token refreshed for $email, updating stored token');
+        _log.i('authTokenRefreshWatcher: refresh token updated');
         ref
             .read(recentEmailsNotifierProvider.notifier)
             .saveRefreshToken(email, newToken);
@@ -129,7 +135,7 @@ Stream<void> authTokenRefreshWatcher(Ref ref) {
   });
 
   ref.onDispose(() {
-    _log.d('[FIX] authTokenRefreshWatcher: disposing');
+    _log.d('authTokenRefreshWatcher: disposing');
     subscription.cancel();
     controller.close();
   });

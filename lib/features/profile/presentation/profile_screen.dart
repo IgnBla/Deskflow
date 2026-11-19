@@ -110,7 +110,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       final currentSession = ref.read(authRepositoryProvider).currentSession;
       final currentEmail = ref.read(authRepositoryProvider).currentUser?.email;
       if (currentEmail != null) {
-        _log.d('[FIX] _signOutAndNavigate: saving email + token for $currentEmail');
+        _log.d('_signOutAndNavigate: saving email and refresh token');
         await ref.read(recentEmailsNotifierProvider.notifier).addEmail(currentEmail);
         if (currentSession?.refreshToken != null) {
           await ref.read(recentEmailsNotifierProvider.notifier).saveRefreshToken(
@@ -196,7 +196,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   void _showAccountSwitcher() {
     final recentEmails = ref.read(recentEmailsNotifierProvider);
-    _log.d('_showAccountSwitcher: recentEmails=$recentEmails');
+    _log.d('_showAccountSwitcher: accountCount=${recentEmails.length}');
 
     final currentEmail = ref.read(authRepositoryProvider).currentUser?.email?.toLowerCase();
     final otherEmails = recentEmails
@@ -204,7 +204,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         .toList();
 
     if (otherEmails.isEmpty) {
-      _log.d('[FIX] _showAccountSwitcher: no other emails, showing add-account sheet');
+      _log.d('_showAccountSwitcher: no other accounts');
       showModalBottomSheet(
         context: context,
         backgroundColor: DeskflowColors.modalSurface,
@@ -258,7 +258,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     title: Text('Добавить аккаунт', style: DeskflowTypography.body),
                     onTap: () {
-                      _log.i('[FIX] _showAccountSwitcher: add account chosen');
+                      _log.i('_showAccountSwitcher: add account chosen');
                       Navigator.of(ctx).pop();
                       _signOutAndNavigate('/auth/login');
                     },
@@ -319,7 +319,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     title: Text(email, style: DeskflowTypography.body),
                     onTap: () {
-                      _log.i('_showAccountSwitcher: selected email=$email');
+                      _log.i('_showAccountSwitcher: account selected');
                       Navigator.of(ctx).pop();
                       _switchToAccount(email);
                     },
@@ -351,14 +351,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Future<void> _switchToAccount(String email) async {
-    _log.d('[FIX] _switchToAccount: email=$email');
+    _log.d('_switchToAccount: switching account');
 
-    final refreshToken = ref
+    final refreshToken = await ref
         .read(recentEmailsNotifierProvider.notifier)
         .getRefreshToken(email);
 
     if (refreshToken == null) {
-      _log.d('[FIX] _switchToAccount: no stored token, falling back to login');
+      _log.d('_switchToAccount: no stored token, falling back to login');
       ref.read(pendingLoginEmailProvider.notifier).state = email;
       _signOutAndNavigate('/auth/login');
       return;
@@ -368,13 +368,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final emailsNotifier = ref.read(recentEmailsNotifierProvider.notifier);
 
     ref.read(isSwitchingAccountProvider.notifier).state = true;
-    _log.d('[FIX] _switchToAccount: switching flag ON');
+    _log.d('_switchToAccount: switching flag ON');
 
     try {
       final currentSession = authRepo.currentSession;
       final currentEmail = authRepo.currentUser?.email;
       if (currentSession?.refreshToken != null && currentEmail != null) {
-        _log.d('[FIX] _switchToAccount: saving current session for $currentEmail');
+        _log.d('_switchToAccount: saving current session');
         await emailsNotifier.saveRefreshToken(
           currentEmail,
           currentSession!.refreshToken!,
@@ -383,24 +383,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
       ref.read(currentOrgIdProvider.notifier).clear();
 
-      _log.d('[FIX] _switchToAccount: restoring target session (no signOut)');
+      _log.d('_switchToAccount: restoring target session (no signOut)');
       final response = await authRepo.restoreSession(refreshToken);
       final newRefreshToken = response.session?.refreshToken;
-      _log.i('[FIX] _switchToAccount: session restored for $email');
+      _log.i('_switchToAccount: session restored');
 
       if (newRefreshToken != null) {
         await emailsNotifier.saveRefreshToken(email, newRefreshToken);
       }
 
       ref.read(isSwitchingAccountProvider.notifier).state = false;
-      _log.d('[FIX] _switchToAccount: switching flag OFF, navigating to splash');
+      _log.d('_switchToAccount: switching flag OFF, navigating to splash');
 
       if (mounted) {
         context.go('/');
       }
       return;
     } catch (e, st) {
-      _log.e('[FIX] _switchToAccount: restore failed, trying refreshSession fallback',
+      _log.e('_switchToAccount: restore failed, trying refreshSession fallback',
           error: e, stackTrace: st);
 
       try {
@@ -408,14 +408,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         final retryToken = retryResponse.session?.refreshToken;
         final retryEmail = retryResponse.session?.user.email;
         if (retryToken != null && retryEmail != null) {
-          _log.i('[FIX] _switchToAccount: refreshSession succeeded for $retryEmail');
+          _log.i('_switchToAccount: refreshSession fallback succeeded');
           await emailsNotifier.saveRefreshToken(retryEmail, retryToken);
           ref.read(isSwitchingAccountProvider.notifier).state = false;
           if (mounted) context.go('/');
           return;
         }
       } catch (retryError) {
-        _log.e('[FIX] _switchToAccount: refreshSession also failed',
+        _log.e('_switchToAccount: refreshSession fallback also failed',
             error: retryError);
       }
 
@@ -429,7 +429,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       try {
         if (ref.read(isSwitchingAccountProvider)) {
           ref.read(isSwitchingAccountProvider.notifier).state = false;
-          _log.d('[FIX] _switchToAccount: switching flag OFF (finally)');
+          _log.d('_switchToAccount: switching flag OFF (finally)');
         }
       } catch (_) {}
     }
@@ -724,7 +724,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     icon: Icons.person_add_rounded,
                     label: 'Добавить аккаунт',
                     onTap: () {
-                      _log.i('[FIX] Add account pressed — sign out and navigate to login');
+                      _log.i('Add account pressed — sign out and navigate to login');
                       _signOutAndNavigate('/auth/login');
                     },
                   ),
