@@ -11,6 +11,10 @@ import 'package:deskflow/features/chat/domain/chat_message.dart';
 
 const _uuid = Uuid();
 
+/// Signed attachment URLs are stored in `chat_attachments` and remain valid
+/// for one year. Historical attachments need a URL-refresh flow after that.
+const _attachmentUrlTtlSeconds = 60 * 60 * 24 * 365;
+
 final _log = AppLogger.getLogger('ChatRepository');
 
 class ChatRepository {
@@ -163,9 +167,8 @@ class ChatRepository {
         final safeFileName = '${_uuid.v4()}$ext';
         final storagePath = 'chat/$orderId/$messageId/$safeFileName';
 
-        _log.d('[FIX] sendMessageWithAttachments: uploading '
-            '"$originalName" as "$safeFileName" '
-            '(${bytes.length} bytes, $mimeType)');
+        _log.d('sendMessageWithAttachments: uploading "$originalName" '
+            'as "$safeFileName" (${bytes.length} bytes, $mimeType)');
 
         await _client.storage
             .from('chat-attachments')
@@ -175,23 +178,23 @@ class ChatRepository {
               fileOptions: FileOptions(contentType: mimeType),
             );
 
-        _log.d('[FIX] sendMessageWithAttachments: upload success for '
+        _log.d('sendMessageWithAttachments: upload succeeded for '
             '"$originalName"');
 
-        final publicUrl = _client.storage
+        final signedUrl = await _client.storage
             .from('chat-attachments')
-            .getPublicUrl(storagePath);
+            .createSignedUrl(storagePath, _attachmentUrlTtlSeconds);
 
         await _client.from('chat_attachments').insert({
           'message_id': messageId,
-          'url': publicUrl,
+          'url': signedUrl,
           'file_name': originalName,
           'mime_type': mimeType,
           'size_bytes': bytes.length,
         });
 
-        _log.d('[FIX] sendMessageWithAttachments: attachment record '
-            'inserted for "$originalName"');
+        _log.d('sendMessageWithAttachments: attachment record inserted '
+            'for "$originalName"');
       }
 
       final fullData = await _client
