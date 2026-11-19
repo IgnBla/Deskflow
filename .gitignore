@@ -73,6 +73,9 @@ error*.png
 *.mobileprovision
 google-services.json
 GoogleService-Info.plist
+key.properties
+local.properties
+**/local.properties
 .envrc
 .secrets/
 secrets/
