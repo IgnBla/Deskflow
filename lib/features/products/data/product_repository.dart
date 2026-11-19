@@ -151,7 +151,7 @@ class ProductRepository {
       'webp': 'image/webp',
     };
     final contentType = mimeMap[fileExt] ?? 'image/jpeg';
-    _log.d('[FIX] uploadProductImage: contentType=$contentType');
+    _log.d('uploadProductImage: contentType=$contentType');
 
     await _client.storage.from('product-images').uploadBinary(
           path,

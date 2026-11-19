@@ -57,17 +57,17 @@ class AuthNotifier extends _$AuthNotifier {
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await ref.read(authRepositoryProvider).resetPassword(email);
-      _log.i('[FIX] Password reset email sent');
+      _log.i('Password reset email sent');
     });
     return !state.hasError;
   }
 
   Future<bool> updatePassword(String newPassword) async {
-    _log.d('[FIX] updatePassword called');
+    _log.d('updatePassword called');
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await ref.read(authRepositoryProvider).updatePassword(newPassword);
-      _log.i('[FIX] Password updated successfully');
+      _log.i('Password updated successfully');
     });
     return !state.hasError;
   }
@@ -76,14 +76,14 @@ class AuthNotifier extends _$AuthNotifier {
     required String email,
     required String token,
   }) async {
-    _log.d('[FIX] verifyRecoveryOtp called');
+    _log.d('verifyRecoveryOtp called');
     state = const AsyncLoading();
     state = await AsyncValue.guard(() async {
       await ref.read(authRepositoryProvider).verifyRecoveryOtp(
             email: email,
             token: token,
           );
-      _log.i('[FIX] Recovery OTP verified — user authenticated');
+      _log.i('Recovery OTP verified — user authenticated');
     });
     return !state.hasError;
   }

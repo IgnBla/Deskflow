@@ -103,8 +103,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       ref.read(addingAccountProvider.notifier).state = false;
 
       final email = Uri.encodeComponent(_emailController.text.trim());
-      _log.i('[FIX] Registration successful — navigating to email verification '
-          '(email=$email)');
+      _log.i('Registration successful — navigating to email verification');
       if (mounted) context.go('/auth/verify-email?email=$email');
     }
   }

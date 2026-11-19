@@ -14,7 +14,7 @@ class NotificationRepository {
     required String orgId,
     int limit = 50,
   }) async {
-    _log.d('[FIX] getNotifications: orgId=$orgId, limit=$limit');
+    _log.d('getNotifications: orgId=$orgId, limit=$limit');
     final response = await _client
         .from('notifications')
         .select()
@@ -25,12 +25,12 @@ class NotificationRepository {
     final list = (response as List)
         .map((json) => AppNotification.fromJson(json as Map<String, dynamic>))
         .toList();
-    _log.i('[FIX] getNotifications: fetched ${list.length} notifications');
+    _log.i('getNotifications: fetched ${list.length} notifications');
     return list;
   }
 
   Future<int> getUnreadCount({required String orgId}) async {
-    _log.d('[FIX] getUnreadCount: orgId=$orgId');
+    _log.d('getUnreadCount: orgId=$orgId');
     final response = await _client
         .from('notifications')
         .select()
@@ -38,12 +38,12 @@ class NotificationRepository {
         .eq('is_read', false);
 
     final count = (response as List).length;
-    _log.d('[FIX] getUnreadCount: $count unread');
+    _log.d('getUnreadCount: $count unread');
     return count;
   }
 
   Future<void> markAsRead(String notificationId) async {
-    _log.d('[FIX] markAsRead: id=$notificationId');
+    _log.d('markAsRead: id=$notificationId');
     await _client
         .from('notifications')
         .update({'is_read': true})
@@ -51,7 +51,7 @@ class NotificationRepository {
   }
 
   Future<void> markAllAsRead({required String orgId}) async {
-    _log.d('[FIX] markAllAsRead: orgId=$orgId');
+    _log.d('markAllAsRead: orgId=$orgId');
     await _client
         .from('notifications')
         .update({'is_read': true})
@@ -60,7 +60,7 @@ class NotificationRepository {
   }
 
   Future<void> deleteNotification(String notificationId) async {
-    _log.d('[FIX] deleteNotification: id=$notificationId');
+    _log.d('deleteNotification: id=$notificationId');
     await _client.from('notifications').delete().eq('id', notificationId);
   }
 
@@ -68,7 +68,7 @@ class NotificationRepository {
     required String userId,
     required void Function(AppNotification notification) onInsert,
   }) {
-    _log.d('[FIX] subscribeToNotifications: userId=$userId');
+    _log.d('subscribeToNotifications: userId=$userId');
     final channel = _client.channel('notifications:$userId');
 
     channel
@@ -82,12 +82,12 @@ class NotificationRepository {
             value: userId,
           ),
           callback: (payload) {
-            _log.d('[FIX] realtime notification received: ${payload.newRecord}');
+            _log.d('realtime notification received: ${payload.newRecord}');
             try {
               final notification = AppNotification.fromJson(payload.newRecord);
               onInsert(notification);
             } catch (e, st) {
-              _log.e('[FIX] failed to parse realtime notification',
+              _log.e('failed to parse realtime notification',
                   error: e, stackTrace: st);
             }
           },

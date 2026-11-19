@@ -39,7 +39,7 @@ class CurrentOrgId extends _$CurrentOrgId {
     // Read the pre-loaded value synchronously (set in main.dart via override)
     final initial = ref.read(initialOrgIdProvider);
     if (initial != null) {
-      _log.d('[FIX] CurrentOrgId: using pre-loaded org=$initial');
+      _log.d('CurrentOrgId: using pre-loaded org=$initial');
     }
     return initial;
   }
@@ -58,9 +58,9 @@ class CurrentOrgId extends _$CurrentOrgId {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(prefsKey, orgId);
-      _log.d('[FIX] CurrentOrgId: persisted org=$orgId');
+      _log.d('CurrentOrgId: persisted org=$orgId');
     } catch (e) {
-      _log.d('[FIX] CurrentOrgId: could not persist org (non-critical): $e');
+      _log.d('CurrentOrgId: could not persist org (non-critical): $e');
     }
   }
 
@@ -68,9 +68,9 @@ class CurrentOrgId extends _$CurrentOrgId {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(prefsKey);
-      _log.d('[FIX] CurrentOrgId: cleared persisted org');
+      _log.d('CurrentOrgId: cleared persisted org');
     } catch (e) {
-      _log.d('[FIX] CurrentOrgId: could not clear org (non-critical): $e');
+      _log.d('CurrentOrgId: could not clear org (non-critical): $e');
     }
   }
 }

@@ -110,7 +110,7 @@ class ProfileRepository {
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final normalizedExt = fileExt == 'jpeg' ? 'jpg' : fileExt;
       final path = '$userId/avatar_$timestamp.$normalizedExt';
-      _log.d('[FIX] uploadAvatar: uploading to path=$path');
+      _log.d('uploadAvatar: uploading to path=$path');
 
       final mimeMap = {
         'jpg': 'image/jpeg',
@@ -119,7 +119,7 @@ class ProfileRepository {
         'webp': 'image/webp',
       };
       final contentType = mimeMap[fileExt] ?? 'image/jpeg';
-      _log.d('[FIX] uploadAvatar: contentType=$contentType (from ext=$fileExt)');
+      _log.d('uploadAvatar: contentType=$contentType (from ext=$fileExt)');
 
       await _client.storage.from('avatars').uploadBinary(
             path,

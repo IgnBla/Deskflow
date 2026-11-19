@@ -30,21 +30,21 @@ class UnreadNotificationCount extends _$UnreadNotificationCount {
     final user = ref.watch(currentUserProvider);
 
     if (orgId == null || user == null) {
-      _log.d('[FIX] UnreadNotificationCount: no org/user, returning 0');
+      _log.d('UnreadNotificationCount: no org/user, returning 0');
       return 0;
     }
 
     _subscribeToRealtime(user.id);
 
     ref.onDispose(() {
-      _log.d('[FIX] UnreadNotificationCount: disposing realtime channel');
+      _log.d('UnreadNotificationCount: disposing realtime channel');
       _channel?.unsubscribe();
       _channel = null;
     });
 
     final repo = ref.read(notificationRepositoryProvider);
     final count = await repo.getUnreadCount(orgId: orgId);
-    _log.i('[FIX] UnreadNotificationCount: $count unread for org=$orgId');
+    _log.i('UnreadNotificationCount: $count unread for org=$orgId');
     return count;
   }
 
@@ -55,7 +55,7 @@ class UnreadNotificationCount extends _$UnreadNotificationCount {
     _channel = repo.subscribeToNotifications(
       userId: userId,
       onInsert: (notification) {
-        _log.d('[FIX] UnreadNotificationCount: new notification, incrementing');
+        _log.d('UnreadNotificationCount: new notification, incrementing');
         final current = state.valueOrNull ?? 0;
         state = AsyncData(current + 1);
       },
@@ -82,18 +82,18 @@ class NotificationsList extends _$NotificationsList {
     final user = ref.watch(currentUserProvider);
 
     if (orgId == null || user == null) {
-      _log.d('[FIX] NotificationsList: no org/user, returning empty');
+      _log.d('NotificationsList: no org/user, returning empty');
       return [];
     }
 
     final repo = ref.read(notificationRepositoryProvider);
     final list = await repo.getNotifications(orgId: orgId);
-    _log.i('[FIX] NotificationsList: loaded ${list.length} notifications');
+    _log.i('NotificationsList: loaded ${list.length} notifications');
     return list;
   }
 
   Future<void> markAsRead(String notificationId) async {
-    _log.d('[FIX] NotificationsList.markAsRead: id=$notificationId');
+    _log.d('NotificationsList.markAsRead: id=$notificationId');
     final repo = ref.read(notificationRepositoryProvider);
 
     state = AsyncData(
@@ -113,7 +113,7 @@ class NotificationsList extends _$NotificationsList {
     final orgId = ref.read(currentOrgIdProvider);
     if (orgId == null) return;
 
-    _log.d('[FIX] NotificationsList.markAllAsRead: orgId=$orgId');
+    _log.d('NotificationsList.markAllAsRead: orgId=$orgId');
     final repo = ref.read(notificationRepositoryProvider);
 
     state = AsyncData(

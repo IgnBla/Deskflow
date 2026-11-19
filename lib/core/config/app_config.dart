@@ -21,7 +21,7 @@ class AppConfig {
   });
 
   static Future<AppConfig> load() async {
-    _log.i('[FIX] Loading app config...');
+    _log.i('Loading app config...');
 
     try {
       final jsonStr = await rootBundle.loadString('assets/env.json');
@@ -30,8 +30,8 @@ class AppConfig {
       final key = map['SUPABASE_ANON_KEY'] as String? ?? '';
 
       if (url.isNotEmpty && key.isNotEmpty) {
-        _log.i('[FIX] Config loaded from assets/env.json');
-        _log.i('[FIX] SUPABASE_URL: ${url.substring(0, url.length.clamp(0, 30))}...');
+        _log.i('Config loaded from assets/env.json');
+        _log.i('SUPABASE_URL: ${url.substring(0, url.length.clamp(0, 30))}...');
         return AppConfig(
           supabaseUrl: url,
           supabaseAnonKey: key,
@@ -39,20 +39,20 @@ class AppConfig {
           googleIosClientId: _nonEmpty(map['GOOGLE_IOS_CLIENT_ID'] as String?),
         );
       }
-      _log.w('[FIX] assets/env.json exists but values are empty');
+      _log.w('assets/env.json exists but values are empty');
     } catch (e) {
-      _log.w('[FIX] Could not load assets/env.json: $e');
+      _log.w('Could not load assets/env.json: $e');
     }
 
     const dartDefineUrl = String.fromEnvironment('SUPABASE_URL');
     const dartDefineKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
-    _log.i('[FIX] Trying dart-define fallback: '
+    _log.i('Trying dart-define fallback: '
         'URL present=${dartDefineUrl.isNotEmpty}, '
         'KEY present=${dartDefineKey.isNotEmpty}');
 
     if (dartDefineUrl.isNotEmpty && dartDefineKey.isNotEmpty) {
-      _log.i('[FIX] Config loaded from dart-define');
+      _log.i('Config loaded from dart-define');
       const dartDefineGoogleWeb =
           String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
       const dartDefineGoogleIos =
@@ -65,7 +65,7 @@ class AppConfig {
       );
     }
 
-    _log.e('[FIX] CRITICAL: No Supabase config found! '
+    _log.e('CRITICAL: No Supabase config found! '
         'Add assets/env.json or build with --dart-define-from-file=env.json');
     throw StateError(
       'Supabase config not found. '

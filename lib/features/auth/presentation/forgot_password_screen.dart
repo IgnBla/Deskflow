@@ -38,7 +38,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         .resetPassword(_emailController.text.trim());
 
     if (success && mounted) {
-      _log.i('[FIX] Recovery email sent — navigating to code entry');
+      _log.i('Recovery email sent — navigating to code entry');
       context.push(
         '/auth/recovery-code?email=${Uri.encodeComponent(_emailController.text.trim())}',
       );

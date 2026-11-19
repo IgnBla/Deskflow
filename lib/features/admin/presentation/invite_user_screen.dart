@@ -55,7 +55,7 @@ class InviteUserScreen extends HookConsumerWidget {
           context.pop();
         }
       } catch (e) {
-        _log.w('[FIX] inviteMember error: $e');
+        _log.w('inviteMember error: $e');
         if (context.mounted) {
           final message =
               e is DeskflowException ? e.message : 'Произошла ошибка';
@@ -350,7 +350,7 @@ class _InviteCodeCard extends StatelessWidget {
                     icon: const Icon(Icons.copy_rounded),
                     tooltip: 'Копировать код',
                     onPressed: () {
-                      _log.d('[FIX] Copying invite code for org=${currentOrg.name}');
+                      _log.d('Copying invite code for org=${currentOrg.name}');
                       Clipboard.setData(
                         ClipboardData(text: currentOrg.inviteCode!),
                       );
@@ -368,16 +368,16 @@ class _InviteCodeCard extends StatelessWidget {
                   label: 'Поделиться приглашением',
                   icon: Icons.share_rounded,
                   onPressed: () async {
-                    _log.d('[FIX] Sharing invite link for org=${currentOrg.name}, '
+                    _log.d('Sharing invite link for org=${currentOrg.name}, '
                         'code=${currentOrg.inviteCode}');
                     try {
                       final result = await Share.share(
                         inviteMessage,
                         subject: 'Приглашение в ${currentOrg.name}',
                       );
-                      _log.d('[FIX] Share result: status=${result.status}');
+                      _log.d('Share result: status=${result.status}');
                     } catch (e) {
-                      _log.e('[FIX] Share failed', error: e);
+                      _log.e('Share failed', error: e);
                       await Clipboard.setData(ClipboardData(text: inviteMessage));
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(

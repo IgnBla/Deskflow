@@ -59,7 +59,7 @@ class AdminRepository {
     required String email,
     required OrgRole role,
   }) async {
-    _log.d('inviteMemberByEmail: orgId=$orgId, email=$email, role=$role');
+    _log.d('inviteMemberByEmail: orgId=$orgId, role=$role');
     return supabaseGuard(() async {
       try {
         final response = await _client.rpc(

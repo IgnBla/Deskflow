@@ -238,7 +238,7 @@ class ChatNotifier extends _$ChatNotifier {
         var idx = updated.indexWhere((m) => m.id == optimistic.id);
         if (idx < 0) {
           idx = updated.indexWhere((m) => m.id == sent.id);
-          _log.d('[FIX] sendMessageWithAttachments: optimistic not found, '
+          _log.d('sendMessageWithAttachments: optimistic not found, '
               'fallback to real id, idx=$idx');
         }
         if (idx >= 0) {

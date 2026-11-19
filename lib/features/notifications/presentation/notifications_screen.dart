@@ -34,7 +34,7 @@ class NotificationsScreen extends ConsumerWidget {
                     icon: const Icon(Icons.done_all_rounded),
                     tooltip: 'Прочитать все',
                     onPressed: () {
-                      _log.d('[FIX] markAllAsRead tapped');
+                      _log.d('markAllAsRead tapped');
                       ref
                           .read(notificationsListProvider.notifier)
                           .markAllAsRead();
@@ -86,7 +86,7 @@ class NotificationsScreen extends ConsumerWidget {
                       key: Key('notification-row-$index'),
                       notification: notification,
                       onTap: () {
-                        _log.d('[FIX] notification tapped: id=${notification.id}, '
+                        _log.d('notification tapped: id=${notification.id}, '
                             'type=${notification.type}, orderId=${notification.orderId}');
 
                         if (!notification.isRead) {

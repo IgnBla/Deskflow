@@ -119,7 +119,7 @@ class _RecoveryCodeScreenState extends ConsumerState<RecoveryCodeScreen> {
   Future<void> _handleVerify() async {
     if (!_isCodeComplete) return;
 
-    _log.d('[FIX] Verifying recovery code for ${widget.email}');
+    _log.d('Verifying recovery code');
 
     final verified =
         await ref.read(authNotifierProvider.notifier).verifyRecoveryOtp(
@@ -129,14 +129,14 @@ class _RecoveryCodeScreenState extends ConsumerState<RecoveryCodeScreen> {
 
     if (!verified || !mounted) return;
 
-    _log.i('[FIX] Recovery OTP verified — generating new password');
+    _log.i('Recovery OTP verified — generating new password');
 
     final password = _generatePassword();
     final updated =
         await ref.read(authNotifierProvider.notifier).updatePassword(password);
 
     if (updated && mounted) {
-      _log.i('[FIX] New password set successfully — showing to user');
+      _log.i('New password set successfully — showing to user');
       setState(() => _newPassword = password);
     }
   }
@@ -144,7 +144,7 @@ class _RecoveryCodeScreenState extends ConsumerState<RecoveryCodeScreen> {
   Future<void> _handleResend() async {
     if (widget.email.isEmpty) return;
 
-    _log.d('[FIX] Resending recovery email to ${widget.email}');
+    _log.d('Resending recovery email');
     final success = await ref
         .read(authNotifierProvider.notifier)
         .resetPassword(widget.email);
@@ -191,7 +191,7 @@ class _RecoveryCodeScreenState extends ConsumerState<RecoveryCodeScreen> {
         final message = error is DeskflowException
             ? error.message
             : 'Неверный код. Попробуйте снова.';
-        _log.w('[FIX] Error during recovery: $message');
+        _log.w('Error during recovery: $message');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(message),

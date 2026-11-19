@@ -34,12 +34,12 @@ void main() async {
     anonKey: config.supabaseAnonKey,
   );
 
-  _log.i('[FIX] Supabase initialized successfully');
+  _log.i('Supabase initialized successfully');
 
   // Pre-warm SharedPreferences so CurrentOrgId can read synchronously
   final prefs = await SharedPreferences.getInstance();
   final savedOrgId = prefs.getString(CurrentOrgId.prefsKey);
-  _log.i('[FIX] Pre-warmed SharedPreferences, savedOrg=$savedOrgId');
+  _log.i('Pre-warmed SharedPreferences, savedOrg=$savedOrgId');
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(

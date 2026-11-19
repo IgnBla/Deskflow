@@ -246,7 +246,7 @@ class OrgRepository {
       'webp': 'image/webp',
     };
     final contentType = mimeMap[fileExt] ?? 'image/jpeg';
-    _log.d('[FIX] uploadOrgAvatar: contentType=$contentType');
+    _log.d('uploadOrgAvatar: contentType=$contentType');
 
     await _client.storage.from('org-avatars').uploadBinary(
           path,

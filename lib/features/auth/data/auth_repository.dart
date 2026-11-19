@@ -44,47 +44,47 @@ class AuthRepository {
   }
 
   Future<void> signOut({SignOutScope scope = SignOutScope.local}) async {
-    _log.d('[FIX] signOut: scope=$scope');
+    _log.d('signOut: scope=$scope');
     await supabaseGuard(() => _client.auth.signOut(scope: scope));
   }
 
   Future<AuthResponse> restoreSession(String refreshToken) async {
-    _log.d('[FIX] restoreSession: attempting session recovery');
+    _log.d('restoreSession: attempting session recovery');
     return supabaseGuard(
       () => _client.auth.setSession(refreshToken),
     );
   }
 
   Future<AuthResponse> refreshCurrentSession() async {
-    _log.d('[FIX] refreshCurrentSession: attempting token refresh');
+    _log.d('refreshCurrentSession: attempting token refresh');
     return supabaseGuard(
       () => _client.auth.refreshSession(),
     );
   }
 
   Future<void> resetPassword(String email) async {
-    _log.d('[FIX] resetPassword: $email');
+    _log.d('resetPassword: requested');
     await supabaseGuard(
       () => _client.auth.resetPasswordForEmail(email),
     );
-    _log.i('[FIX] Password reset email sent successfully');
+    _log.i('Password reset email sent successfully');
   }
 
   Future<void> updatePassword(String newPassword) async {
-    _log.d('[FIX] updatePassword called');
+    _log.d('updatePassword called');
     await supabaseGuard(
       () => _client.auth.updateUser(
         UserAttributes(password: newPassword),
       ),
     );
-    _log.i('[FIX] Password updated successfully');
+    _log.i('Password updated successfully');
   }
 
   Future<AuthResponse> verifyRecoveryOtp({
     required String email,
     required String token,
   }) async {
-    _log.d('[FIX] verifyRecoveryOtp: $email');
+    _log.d('verifyRecoveryOtp: requested');
     return supabaseGuard(() => _client.auth.verifyOTP(
           email: email,
           token: token,

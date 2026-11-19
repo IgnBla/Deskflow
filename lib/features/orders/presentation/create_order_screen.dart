@@ -214,7 +214,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   void _showCustomerPicker() {
-    _log.d('[FIX] _showCustomerPicker: opening customer picker');
+    _log.d('_showCustomerPicker: opening customer picker');
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -222,7 +222,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       builder: (_) => _CustomerPickerSheet(
         onCustomerSelected: (customer) {
           _log.d(
-            '[FIX] _showCustomerPicker: selected customer=${customer.name}',
+            '_showCustomerPicker: selected customer=${customer.name}',
           );
           setState(() => _selectedCustomer = customer);
         },
@@ -1116,7 +1116,7 @@ class _CustomerPickerSheet extends HookConsumerWidget {
                           : null,
                       onTap: () {
                         _log.d(
-                          '[FIX] _CustomerPickerSheet: selected ${customer.name}',
+                          '_CustomerPickerSheet: selected ${customer.name}',
                         );
                         Navigator.pop(context);
                         onCustomerSelected(customer);

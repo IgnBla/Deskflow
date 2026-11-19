@@ -166,7 +166,8 @@ GoRouter appRouter(Ref ref) {
       path: '/auth/recovery-code',
       builder: (context, state) {
         final email = state.uri.queryParameters['email'] ?? '';
-        _log.d('[FIX] Navigating to RecoveryCodeScreen (email=$email)');
+        _log.d('Navigating to RecoveryCodeScreen '
+            '(emailPresent=${email.isNotEmpty})');
         return RecoveryCodeScreen(email: email);
       },
     ),
@@ -174,7 +175,7 @@ GoRouter appRouter(Ref ref) {
       path: '/auth/verify-email',
       builder: (context, state) {
         final email = state.uri.queryParameters['email'] ?? '';
-        _log.d('Navigating to EmailVerificationScreen (email=$email)');
+        _log.d('Navigating to EmailVerificationScreen');
         return EmailVerificationScreen(email: email);
       },
     ),

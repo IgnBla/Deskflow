@@ -34,7 +34,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final pendingEmail = ref.read(pendingLoginEmailProvider);
     _emailController = TextEditingController(text: pendingEmail ?? '');
     if (pendingEmail != null && pendingEmail.isNotEmpty) {
-      _log.i('initState: pre-filled email=$pendingEmail');
+      _log.i('initState: pre-filled pending login email');
       Future(() {
         ref.read(pendingLoginEmailProvider.notifier).state = null;
       });
@@ -61,7 +61,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (!success || !mounted) return;
 
-      _log.i('_handleLogin: saving email=$email to account history');
+      _log.i('_handleLogin: saving account to history');
       try {
         await ref
             .read(recentEmailsNotifierProvider.notifier)
@@ -73,13 +73,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       try {
         final refreshToken = ref.read(authRepositoryProvider).currentSession?.refreshToken;
         if (refreshToken != null) {
-          _log.d('[FIX] _handleLogin: saving refresh token for $email');
+          _log.d('_handleLogin: saving refresh token');
           await ref
               .read(recentEmailsNotifierProvider.notifier)
               .saveRefreshToken(email, refreshToken);
         }
-      } catch (e) {
-        _log.d('[FIX] _handleLogin: could not save refresh token (non-critical): $e');
+      } catch (_) {
+        _log.d('_handleLogin: could not save refresh token (non-critical)');
       }
 
       ref.read(addingAccountProvider.notifier).state = false;
@@ -116,14 +116,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final email = user?.email;
       final refreshToken = session?.refreshToken;
       if (email != null && email.isNotEmpty) {
-        _log.d('[FIX] _saveSessionAfterOAuth: saving for $email');
+        _log.d('_saveSessionAfterOAuth: saving account session');
         await ref.read(recentEmailsNotifierProvider.notifier).addEmail(email);
         if (refreshToken != null) {
           await ref.read(recentEmailsNotifierProvider.notifier).saveRefreshToken(email, refreshToken);
         }
       }
     } catch (e) {
-      _log.d('[FIX] _saveSessionAfterOAuth: non-critical error: $e');
+      _log.d('_saveSessionAfterOAuth: non-critical error', error: e);
     }
   }
 
